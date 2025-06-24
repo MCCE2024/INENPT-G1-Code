@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: consumer
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/MCCE2024/INENPT-G1-Argo.git
+    targetRevision: main
+    path: applications/consumer/helm
+    helm:
+      values: |
+        tenant:
+          name: "tenant-a"
+          port: 30000
+        github:
+          clientId: ""  # Will be set via secret
+          clientSecret: ""  # Will be set via secret
+        session:
+          secret: ""  # Will be set via secret
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

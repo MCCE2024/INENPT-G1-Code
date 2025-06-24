@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api
+  namespace: argocd
+  labels:
+    app: api-service
+    component: api
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/MCCE2024/INENPT-G1-Argo.git
+    targetRevision: main
+    path: applications/api/helm
+    helm:
+      values: |
+        database:
+          host: "postgresql-service"
+          port: 5432
+          name: "mcce_db"
+          user: "mcce_user"
+          password: ""  # Will be set via secret
+        github:
+          clientId: ""  # Will be set via secret
+          clientSecret: ""  # Will be set via secret
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  revisionHistoryLimit: 10

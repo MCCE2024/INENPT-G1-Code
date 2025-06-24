@@ -1,0 +1,61 @@
+# Default values for producer
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mcce2024/akkt1-g1-producer
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+# CronJob configuration
+schedule: "*/1 * * * *" # Run every minute
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 3
+failedJobsHistoryLimit: 1
+startingDeadlineSeconds: 100
+
+# API configuration
+api:
+  url: "http://api-service:3000"
+  timeout: 30
+
+# GitHub OAuth configuration
+github:
+  token: "" # Will be set via secret
+
+# Environment configuration
+environment: "prod" # Can be "prod" or "test"
+
+# Resource limits
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: consumer
+description: A Helm chart for the consumer service with GitHub OAuth authentication
+type: application
+version: 0.1.0
+appVersion: "2.0.0"
+keywords:
+  - consumer
+  - github-oauth
+  - frontend
+  - multi-tenant
+home: https://github.com/MCCE2024/INENPT-G1-Argo
+sources:
+  - https://github.com/MCCE2024/INENPT-G1-Argo
+maintainers:
+  - name: Group1
+    email: group1@example.com

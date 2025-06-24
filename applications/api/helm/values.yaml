@@ -1,0 +1,68 @@
+# Default values for API
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mcce2024/akkt1-g1-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+# Database configuration
+database:
+  host: "postgresql-service"
+  port: 5432
+  name: "mcce_db"
+  user: "mcce_user"
+  password: "" # Will be set via secret
+  ssl: "false"
+
+# GitHub OAuth configuration (for validation)
+github:
+  clientId: "" # Will be set via secret
+  clientSecret: "" # Will be set via secret
+
+# Application configuration
+app:
+  port: 3000
+  nodeEnv: "production"
+  logLevel: "info"
+
+# Resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
