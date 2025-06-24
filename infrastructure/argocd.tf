@@ -39,13 +39,3 @@ resource "helm_release" "argocd" {
     value = "LoadBalancer"
   }
 }
-
-
-# Tenant Port Mapping
-tenant-a: 30000
-tenant-b: 30001
-tenant-c: 30002
-tenant-d: 30003
-tenant-e: 30004
-tenant-f: 30005
-# ... and so on 
