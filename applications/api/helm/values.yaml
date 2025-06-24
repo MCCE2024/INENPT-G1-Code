@@ -29,14 +29,14 @@ service:
   port: 3000
   targetPort: 3000
 
-# Database configuration
+# External Database configuration (Aiven Cloud)
 database:
-  host: "postgresql-service"
-  port: 5432
-  name: "mcce_db"
-  user: "mcce_user"
+  host: "inenpt-g1-postgresql-exoscale-8d4daa3a-4052-4544-b383-b09812875.b.aivencloud.com"
+  port: 21699
+  name: "defaultdb"
+  user: "avnadmin"
   password: "" # Will be set via secret
-  ssl: "false"
+  ssl: "require"
 
 # GitHub OAuth configuration (for validation)
 github:
