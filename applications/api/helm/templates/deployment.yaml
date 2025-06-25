@@ -153,18 +153,22 @@ spec:
         - protocol: TCP
           port: 3000
   egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              name: postgresql
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow external PostgreSQL connection (Aiven Cloud)
+    - to: []
       ports:
         - protocol: TCP
-          port: 5432
+          port: 21699
+    # Allow HTTP/HTTPS for external APIs
     - to: []
       ports:
         - protocol: TCP
           port: 443
-          # GitHub API
         - protocol: TCP
           port: 80
-          # GitHub API (fallback)
