@@ -47,7 +47,7 @@ try {
 
 // Debug: print DB user and password
 logger.info(`DB_USER: ${process.env.DB_USER}`);
-logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`);
+// logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`); // Commented out for security
 
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -64,6 +64,37 @@ const pool = new Pool({
         }
       : false,
 });
+
+// Function to initialize database tables
+async function initializeDatabase() {
+  try {
+    logger.info("Initializing database tables...");
+
+    // Test tenant ID for initialization
+    const tenantId = "test_tenant";
+    const schemaName = `tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+    // Create tenant schema if it doesn't exist
+    await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`);
+    logger.info(`Schema ${schemaName} created/verified`);
+
+    // Create messages table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ${schemaName}.messages (
+        id SERIAL PRIMARY KEY,
+        datetime TIMESTAMP NOT NULL,
+        environment VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    logger.info(`Table ${schemaName}.messages created/verified`);
+
+    logger.info("Database initialization completed successfully");
+  } catch (error) {
+    logger.error("Error initializing database:", error);
+    throw error;
+  }
+}
 
 // Simple test middleware - no authentication for testing
 function testMiddleware(req, res, next) {
@@ -228,11 +259,23 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`API server running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
-  logger.info(`Using test tenant ID: test_tenant`);
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    await initializeDatabase();
+
+    app.listen(PORT, () => {
+      logger.info(`API server running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
+      logger.info(`Using test tenant ID: test_tenant`);
+    });
+  } catch (error) {
+    logger.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
 
 module.exports = app;
