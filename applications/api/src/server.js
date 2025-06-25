@@ -4,6 +4,8 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const winston = require("winston");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -34,6 +36,15 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Read CA certificate
+let caCert = null;
+try {
+  caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
+  logger.info("CA certificate loaded successfully");
+} catch (error) {
+  logger.warn("Could not load CA certificate:", error.message);
+}
+
 // PostgreSQL connection pool
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -41,7 +52,13 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.DB_SSL === "require"
+      ? {
+          rejectUnauthorized: false,
+          ca: caCert,
+        }
+      : false,
 });
 
 // Simple test middleware - no authentication for testing
