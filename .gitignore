@@ -6,3 +6,4 @@ infrastructure/kubeconfig.yaml
 .terraform/
 .terraform.lock.hcl
 terraform.tfvars
+db-password.txt
