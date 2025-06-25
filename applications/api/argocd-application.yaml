@@ -12,21 +12,9 @@ spec:
     repoURL: https://github.com/MCCE2024/INENPT-G1-Argo.git
     targetRevision: main
     path: applications/api/helm
-    helm:
-      values: |
-        database:
-          host: "inenpt-g1-postgresql-exoscale-8d4daa3a-4052-4544-b383-b09812875.b.aivencloud.com"
-          port: 21699
-          name: "defaultdb"
-          user: "avnadmin"
-          password: ""  # Will be set via secret
-          ssl: "require"
-        github:
-          clientId: ""  # Will be set via secret
-          clientSecret: ""  # Will be set via secret
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: test-tenant
   syncPolicy:
     automated:
       prune: true

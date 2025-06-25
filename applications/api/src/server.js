@@ -3,7 +3,6 @@ const { Pool } = require("pg");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const axios = require("axios");
 const winston = require("winston");
 require("dotenv").config();
 
@@ -45,32 +44,16 @@ const pool = new Pool({
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
 });
 
-// GitHub OAuth validation middleware
-async function validateGitHubToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "GitHub token required" });
-  }
-
-  const token = authHeader.substring(7);
-
-  try {
-    // Validate token with GitHub API
-    const response = await axios.get("https://api.github.com/user", {
-      headers: {
-        Authorization: `token ${token}`,
-        "User-Agent": "MCCE-API-Service",
-      },
-    });
-
-    req.githubUser = response.data;
-    req.tenantId = req.githubUser.login; // Use GitHub username as tenant ID
-    next();
-  } catch (error) {
-    logger.error("GitHub token validation failed:", error.message);
-    return res.status(401).json({ error: "Invalid GitHub token" });
-  }
+// Simple test middleware - no authentication for testing
+function testMiddleware(req, res, next) {
+  // Use a test tenant ID for all requests
+  req.tenantId = "test_tenant";
+  req.githubUser = {
+    login: "test_tenant",
+    id: 12345,
+    name: "Test User",
+  };
+  next();
 }
 
 // Health check endpoint
@@ -79,7 +62,7 @@ app.get("/health", (req, res) => {
 });
 
 // POST /api/messages - Store datetime message
-app.post("/api/messages", validateGitHubToken, async (req, res) => {
+app.post("/api/messages", testMiddleware, async (req, res) => {
   try {
     const { datetime, environment = "prod" } = req.body;
     const tenantId = req.tenantId;
@@ -139,7 +122,7 @@ app.post("/api/messages", validateGitHubToken, async (req, res) => {
 });
 
 // GET /api/messages - Retrieve datetime messages
-app.get("/api/messages", validateGitHubToken, async (req, res) => {
+app.get("/api/messages", testMiddleware, async (req, res) => {
   try {
     const tenantId = req.tenantId;
     const { environment = "prod", limit = 100 } = req.query;
@@ -188,7 +171,7 @@ app.get("/api/messages", validateGitHubToken, async (req, res) => {
 });
 
 // GET /api/tenants - Get tenant information
-app.get("/api/tenants", validateGitHubToken, async (req, res) => {
+app.get("/api/tenants", testMiddleware, async (req, res) => {
   try {
     const tenantId = req.tenantId;
 
@@ -228,6 +211,7 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
   logger.info(`API server running on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
+  logger.info(`Using test tenant ID: test_tenant`);
 });
 
 module.exports = app;

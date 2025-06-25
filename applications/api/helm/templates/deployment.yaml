@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "api.fullname" . }}
+  namespace: test-tenant
   labels:
     {{- include "api.labels" . | nindent 4 }}
 spec:
@@ -54,16 +55,6 @@ spec:
               key: password
         - name: DB_SSL
           value: {{ .Values.database.ssl | quote }}
-        - name: GITHUB_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "api.fullname" . }}-github-secret
-              key: clientId
-        - name: GITHUB_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "api.fullname" . }}-github-secret
-              key: clientSecret
         {{- with .Values.securityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
@@ -101,6 +92,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: api-service
+  namespace: test-tenant
   labels:
     app: api-service
     component: api
@@ -112,12 +104,13 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: api-service
+    {{- include "api.selectorLabels" . | nindent 4 }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: api-service-account
+  namespace: test-tenant
   labels:
     app: api-service
     component: api
@@ -126,13 +119,14 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: api-service-network-policy
+  namespace: test-tenant
   labels:
     app: api-service
     component: api
 spec:
   podSelector:
     matchLabels:
-      app: api-service
+      {{- include "api.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Ingress
     - Egress
