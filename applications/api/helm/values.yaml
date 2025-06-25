@@ -31,7 +31,7 @@ database:
   host: "inenpt-g1-postgresql-exoscale-8d4daa3a-4052-4544-b383-b09812875.b.aivencloud.com"
   port: 21699
   name: "defaultdb"
-  user: "api-user"
+  user: "avnadmin"
   password: "" # Will be set via secret
   ssl: "require"
 

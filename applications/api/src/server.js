@@ -45,6 +45,10 @@ try {
   logger.warn("Could not load CA certificate:", error.message);
 }
 
+// Debug: print DB user and password
+logger.info(`DB_USER: ${process.env.DB_USER}`);
+logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`);
+
 // PostgreSQL connection pool
 const pool = new Pool({
   host: process.env.DB_HOST,
