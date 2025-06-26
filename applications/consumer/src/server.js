@@ -66,7 +66,8 @@ app.get("/logout", (req, res) => {
 app.get("/api/messages", async (req, res) => {
   try {
     const limit = req.query.limit || 50;
-    const apiUrl = `${API_BASE_URL}/api/messages?limit=${limit}`;
+    const environment = req.query.environment || "prod";
+    const apiUrl = `${API_BASE_URL}/api/messages?environment=${environment}&limit=${limit}`;
 
     console.log("Fetching messages from:", apiUrl);
 
