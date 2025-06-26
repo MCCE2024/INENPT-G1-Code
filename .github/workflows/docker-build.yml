@@ -8,55 +8,75 @@ on:
       - "applications/consumer/**"
       - "applications/producer/**"
       - ".github/workflows/docker-build.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "applications/api/**"
+      - "applications/consumer/**"
+      - "applications/producer/**"
+      - ".github/workflows/docker-build.yml"
 
 # Add these permissions
 permissions:
   contents: read
   packages: write # This is required to push to ghcr.io
 
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_NAMESPACE: mcce2024
+
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [api, consumer, producer]
         include:
           - service: api
             dockerfile: applications/api/src/Dockerfile
             context: applications/api/src
-            image: argo-g1-api
+            image: inenpt-g1-api
+            description: "Node.js API service for multi-tenant message management"
           - service: consumer
             dockerfile: applications/consumer/src/Dockerfile
             context: applications/consumer/src
-            image: argo-g1-consumer
+            image: inenpt-g1-consumer
+            description: "Node.js consumer service with GitHub OAuth frontend"
           - service: producer
             dockerfile: applications/producer/src/Dockerfile
             context: applications/producer/src
-            image: argo-g1-producer
+            image: inenpt-g1-producer
+            description: "Python producer service for datetime message generation"
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ secrets.GHCR_USR }}
-          password: ${{ secrets.GHCR_PAT }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/MCCE2024/${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/${{ matrix.image }}
           tags: |
             type=ref,event=branch
-            type=sha,format=short
-            type=raw,value=latest
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image }}
+            org.opencontainers.image.description=${{ matrix.description }}
+            org.opencontainers.image.vendor=INENPT Group 1
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -66,5 +86,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          platforms: linux/amd64
+
+      - name: Image digest
+        run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
