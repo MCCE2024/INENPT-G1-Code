@@ -29,10 +29,11 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Rate limiting
+// Rate limiting - exclude health checks
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // limit each IP to 500 requests per windowMs
+  skip: (req) => req.path === "/health", // Skip rate limiting for health checks
 });
 app.use(limiter);
 
