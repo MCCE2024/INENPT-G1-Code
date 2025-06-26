@@ -345,9 +345,25 @@
           '<div class="loading">Loading messages...</div>';
 
         try {
-          const response = await fetch("/api/messages?limit=50");
-          const data = await response.json();
-          messages = data.messages || [];
+          // Load messages from both environments
+          const [prodResponse, testResponse] = await Promise.all([
+            fetch("/api/messages?environment=prod&limit=50"),
+            fetch("/api/messages?environment=test&limit=50"),
+          ]);
+
+          const prodData = await prodResponse.json();
+          const testData = await testResponse.json();
+
+          // Combine and sort messages by created_at
+          const allMessages = [
+            ...(prodData.messages || []),
+            ...(testData.messages || []),
+          ];
+
+          // Sort by created_at descending (newest first)
+          messages = allMessages.sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          );
 
           renderMessages();
         } catch (error) {
