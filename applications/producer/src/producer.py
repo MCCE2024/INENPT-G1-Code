@@ -20,30 +20,25 @@ environment = os.getenv('ENVIRONMENT', 'prod')
 
 def validate_config():
     """Validate that required configuration is present"""
-    if not github_token:
-        logger.error("GITHUB_TOKEN environment variable is required")
-        return False
+    # GitHub token is not actually required by the API, but we keep it for future use
+    logger.info(f"API URL: {api_url}")
+    logger.info(f"Environment: {environment}")
     return True
 
 def create_message():
-    """Create the datetime message with enhanced metadata"""
+    """Create the datetime message that matches API expectations"""
     current_time = datetime.now(ZoneInfo("UTC"))
     
+    # API expects a simple payload with datetime and environment
     return {
-        "datetime": current_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
-        "environment": environment,
-        "source": "producer",
-        "metadata": {
-            "timezone": "UTC",
-            "timestamp": current_time.isoformat(),
-            "producer_version": "2.0.0"
-        }
+        "datetime": current_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "environment": environment
     }
 
 def send_to_api(message, max_retries=3, retry_delay=30):
     """Send message to API with retry logic"""
+    # API doesn't require authentication headers based on testMiddleware
     headers = {
-        'Authorization': f'Bearer {github_token}',
         'Content-Type': 'application/json',
         'User-Agent': 'MCCE-Producer-Service'
     }
@@ -53,6 +48,8 @@ def send_to_api(message, max_retries=3, retry_delay=30):
     for attempt in range(max_retries):
         try:
             logger.info(f"Sending message to API (attempt {attempt + 1}/{max_retries})")
+            logger.info(f"Endpoint: {endpoint}")
+            logger.info(f"Payload: {json.dumps(message, indent=2)}")
             
             response = requests.post(
                 endpoint,
@@ -60,6 +57,9 @@ def send_to_api(message, max_retries=3, retry_delay=30):
                 json=message,
                 timeout=30
             )
+            
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response body: {response.text}")
             
             if response.status_code == 201:
                 logger.info(f"Successfully sent message to API: {response.json()}")
