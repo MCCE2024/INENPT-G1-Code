@@ -2,30 +2,37 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ main, dev, templating ]
+    branches: [main, dev, templating]
     paths:
-      - 'consumer/**'
-      - 'producer/**'
-      - '.github/workflows/docker-build.yml'
+      - "applications/api/**"
+      - "applications/consumer/**"
+      - "applications/producer/**"
+      - ".github/workflows/docker-build.yml"
 
 # Add these permissions
 permissions:
   contents: read
-  packages: write    # This is required to push to ghcr.io
+  packages: write # This is required to push to ghcr.io
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [consumer, producer]
+        service: [api, consumer, producer]
         include:
+          - service: api
+            dockerfile: applications/api/src/Dockerfile
+            context: applications/api/src
+            image: argo-g1-api
           - service: consumer
-            dockerfile: consumer/Dockerfile
-            image: akkt1-g1-consumer
+            dockerfile: applications/consumer/src/Dockerfile
+            context: applications/consumer/src
+            image: argo-g1-consumer
           - service: producer
-            dockerfile: producer/Dockerfile
-            image: akkt1-g1-producer
+            dockerfile: applications/producer/src/Dockerfile
+            context: applications/producer/src
+            image: argo-g1-producer
 
     steps:
       - name: Checkout code
@@ -51,13 +58,13 @@ jobs:
             type=sha,format=short
             type=raw,value=latest
 
-      - name: Build and push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service }}
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max 
+          cache-to: type=gha,mode=max
