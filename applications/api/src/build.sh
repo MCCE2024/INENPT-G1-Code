@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Use timestamp as version
 VERSION=$(date +%Y%m%d-%H%M%S)
@@ -14,8 +14,8 @@ REGISTRY="ghcr.io/mcce2024"
 if [ -f ~/.docker/config.json ] && grep -q "ghcr.io" ~/.docker/config.json; then
     echo "Already logged in to ghcr.io"
 else
-    # Get token from parallel directory
-    TOKEN_PATH="$(dirname "$SCRIPT_DIR")/token"
+    # Get token from root directory
+    TOKEN_PATH="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")/token"
     if [ ! -f "$TOKEN_PATH" ]; then
         echo "Could not read GitHub token from '$TOKEN_PATH' file"
         exit 1
