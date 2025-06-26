@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [main, dev, templating]
+    branches: [main, dev]
     paths:
       - "applications/api/**"
       - "applications/consumer/**"
@@ -36,17 +36,17 @@ jobs:
           - service: api
             dockerfile: applications/api/src/Dockerfile
             context: applications/api/src
-            image: inenpt-g1-api
+            image: argo-g1-api
             description: "Node.js API service for multi-tenant message management"
           - service: consumer
             dockerfile: applications/consumer/src/Dockerfile
             context: applications/consumer/src
-            image: inenpt-g1-consumer
+            image: argo-g1-consumer
             description: "Node.js consumer service with GitHub OAuth frontend"
           - service: producer
             dockerfile: applications/producer/src/Dockerfile
             context: applications/producer/src
-            image: inenpt-g1-producer
+            image: argo-g1-producer
             description: "Python producer service for datetime message generation"
 
     steps:
@@ -72,7 +72,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
           labels: |
             org.opencontainers.image.title=${{ matrix.image }}
             org.opencontainers.image.description=${{ matrix.description }}
