@@ -91,6 +91,31 @@
         border-radius: 4px;
         cursor: pointer;
       }
+      .filter-buttons {
+        display: flex;
+        gap: 0.25rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 0.25rem;
+      }
+      .filter-btn {
+        background: transparent;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #666;
+        transition: all 0.2s;
+      }
+      .filter-btn:hover {
+        background: #e9ecef;
+        color: #333;
+      }
+      .filter-btn.active {
+        background: #007bff;
+        color: white;
+      }
       .messages-table {
         width: 100%;
         border-collapse: collapse;
@@ -173,7 +198,34 @@
       <div class="messages-section">
         <div class="section-header">
           <h2>Recent Messages</h2>
-          <button class="refresh-btn" onclick="loadMessages()">Refresh</button>
+          <div style="display: flex; gap: 0.5rem; align-items: center">
+            <div class="filter-buttons">
+              <button
+                class="filter-btn active"
+                data-filter="all"
+                onclick="setFilter('all')"
+              >
+                All
+              </button>
+              <button
+                class="filter-btn"
+                data-filter="prod"
+                onclick="setFilter('prod')"
+              >
+                Production
+              </button>
+              <button
+                class="filter-btn"
+                data-filter="test"
+                onclick="setFilter('test')"
+              >
+                Test
+              </button>
+            </div>
+            <button class="refresh-btn" onclick="loadMessages()">
+              Refresh
+            </button>
+          </div>
         </div>
         <div id="messages-content">
           <div class="loading">Loading messages...</div>
@@ -184,6 +236,80 @@
     <script>
       let messages = [];
       let tenantInfo = {};
+      let currentFilter = "all";
+
+      function setFilter(filter) {
+        currentFilter = filter;
+
+        // Update active button
+        document.querySelectorAll(".filter-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        document
+          .querySelector(`[data-filter="${filter}"]`)
+          .classList.add("active");
+
+        // Re-render messages with filter
+        renderMessages();
+      }
+
+      function renderMessages() {
+        const messagesContent = document.getElementById("messages-content");
+
+        if (messages.length === 0) {
+          messagesContent.innerHTML =
+            '<div class="loading">No messages found</div>';
+          return;
+        }
+
+        // Filter messages based on current filter
+        let filteredMessages = messages;
+        if (currentFilter !== "all") {
+          filteredMessages = messages.filter(
+            (msg) => msg.environment === currentFilter
+          );
+        }
+
+        if (filteredMessages.length === 0) {
+          messagesContent.innerHTML = `<div class="loading">No ${currentFilter} messages found</div>`;
+          return;
+        }
+
+        const table = `
+          <table class="messages-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>DateTime</th>
+                <th>Environment</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredMessages
+                .map(
+                  (msg) => `
+                  <tr>
+                    <td>${msg.id}</td>
+                    <td>${msg.datetime}</td>
+                    <td>
+                      <span class="environment-badge environment-${
+                        msg.environment
+                      }">
+                        ${msg.environment}
+                      </span>
+                    </td>
+                    <td>${new Date(msg.created_at).toLocaleString()}</td>
+                  </tr>
+                `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+
+        messagesContent.innerHTML = table;
+      }
 
       async function loadTenantInfo() {
         try {
@@ -223,48 +349,7 @@
           const data = await response.json();
           messages = data.messages || [];
 
-          if (messages.length === 0) {
-            messagesContent.innerHTML =
-              '<div class="loading">No messages found</div>';
-            return;
-          }
-
-          const table = `
-                    <table class="messages-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>DateTime</th>
-                                <th>Environment</th>
-                                <th>Created At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${messages
-                              .map(
-                                (msg) => `
-                                <tr>
-                                    <td>${msg.id}</td>
-                                    <td>${msg.datetime}</td>
-                                    <td>
-                                        <span class="environment-badge environment-${
-                                          msg.environment
-                                        }">
-                                            ${msg.environment}
-                                        </span>
-                                    </td>
-                                    <td>${new Date(
-                                      msg.created_at
-                                    ).toLocaleString()}</td>
-                                </tr>
-                            `
-                              )
-                              .join("")}
-                        </tbody>
-                    </table>
-                `;
-
-          messagesContent.innerHTML = table;
+          renderMessages();
         } catch (error) {
           console.error("Failed to load messages:", error);
           showError("Failed to load messages");
