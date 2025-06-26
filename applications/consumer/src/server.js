@@ -1,10 +1,24 @@
 const express = require("express");
 const path = require("path");
+const session = require("express-session");
 const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
+
+// Session middleware
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "default-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // Environment variables
 const CONSUMER_PORT = process.env.CONSUMER_PORT || 3000;
@@ -37,8 +51,17 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// Dashboard route
-app.get("/dashboard", (req, res) => {
+// Authentication middleware
+function requireAuth(req, res, next) {
+  if (req.session && req.session.githubUser) {
+    return next();
+  } else {
+    return res.redirect("/?error=authentication_required");
+  }
+}
+
+// Dashboard route (protected)
+app.get("/dashboard", requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
@@ -52,18 +75,89 @@ app.get("/auth/github", (req, res) => {
   res.redirect(githubAuthUrl);
 });
 
-app.get("/auth/github/callback", (req, res) => {
-  // TODO: Implement OAuth callback handling
-  // For now, just redirect to dashboard
-  res.redirect("/dashboard");
+app.get("/auth/github/callback", async (req, res) => {
+  const { code, error } = req.query;
+
+  if (error) {
+    console.error("GitHub OAuth error:", error);
+    return res.redirect("/?error=oauth_failed");
+  }
+
+  if (!code) {
+    return res.redirect("/?error=oauth_no_code");
+  }
+
+  try {
+    // Exchange code for access token
+    const tokenResponse = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: GITHUB_CLIENT_ID,
+          client_secret: GITHUB_CLIENT_SECRET,
+          code: code,
+        }),
+      }
+    );
+
+    const tokenData = await tokenResponse.json();
+
+    if (tokenData.error) {
+      console.error("GitHub token error:", tokenData.error);
+      return res.redirect("/?error=oauth_token_failed");
+    }
+
+    // Get user information
+    const userResponse = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    const userData = await userResponse.json();
+
+    // Store user in session
+    req.session.githubUser = {
+      id: userData.id,
+      login: userData.login,
+      name: userData.name,
+      email: userData.email,
+      avatar_url: userData.avatar_url,
+    };
+
+    console.log(`User authenticated: ${userData.login} (${userData.name})`);
+    res.redirect("/dashboard");
+  } catch (error) {
+    console.error("OAuth callback error:", error);
+    res.redirect("/?error=oauth_callback_failed");
+  }
 });
 
 app.get("/logout", (req, res) => {
-  res.redirect("/");
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Session destroy error:", err);
+    }
+    res.redirect("/");
+  });
+});
+
+// User info endpoint
+app.get("/api/user", requireAuth, (req, res) => {
+  res.json({
+    user: req.session.githubUser,
+    tenant: TENANT_NAME,
+  });
 });
 
 // API proxy endpoints
-app.get("/api/messages", async (req, res) => {
+app.get("/api/messages", requireAuth, async (req, res) => {
   try {
     const limit = req.query.limit || 50;
     const environment = req.query.environment || "prod";
@@ -89,7 +183,7 @@ app.get("/api/messages", async (req, res) => {
   }
 });
 
-app.get("/api/tenants", async (req, res) => {
+app.get("/api/tenants", requireAuth, async (req, res) => {
   try {
     const apiUrl = `${API_BASE_URL}/api/tenants`;
 

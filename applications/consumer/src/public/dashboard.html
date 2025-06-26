@@ -170,6 +170,19 @@
     <div class="header">
       <h1>MCCE Consumer Dashboard</h1>
       <div class="user-info">
+        <img
+          id="user-avatar"
+          src=""
+          alt="User Avatar"
+          style="
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: none;
+          "
+        />
+        <span id="user-name">Loading...</span>
         <span class="tenant-badge" id="tenant-name">Loading...</span>
         <a href="/logout" class="logout-btn">Logout</a>
       </div>
@@ -311,13 +324,43 @@
         messagesContent.innerHTML = table;
       }
 
+      async function loadUserInfo() {
+        try {
+          const response = await fetch("/api/user");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const userInfo = await response.json();
+
+          // Update user display
+          document.getElementById("user-name").textContent =
+            userInfo.user.name || userInfo.user.login || "Unknown User";
+          document.getElementById("tenant-name").textContent =
+            userInfo.tenant || "Unknown";
+
+          // Show avatar if available
+          if (userInfo.user.avatar_url) {
+            const avatar = document.getElementById("user-avatar");
+            avatar.src = userInfo.user.avatar_url;
+            avatar.style.display = "inline";
+          }
+        } catch (error) {
+          console.error("Failed to load user info:", error);
+          // Redirect to login if authentication failed
+          if (error.message.includes("401") || error.message.includes("403")) {
+            window.location.href = "/?error=session_expired";
+          }
+        }
+      }
+
       async function loadTenantInfo() {
         try {
           const response = await fetch("/api/tenants");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
           tenantInfo = await response.json();
 
-          document.getElementById("tenant-name").textContent =
-            tenantInfo.tenantId || "Unknown";
           document.getElementById("total-messages").textContent =
             tenantInfo.statistics?.total_messages || 0;
           document.getElementById("prod-messages").textContent =
@@ -381,6 +424,7 @@
       setInterval(loadMessages, 30000);
 
       // Initial load
+      loadUserInfo();
       loadTenantInfo();
       loadMessages();
     </script>
