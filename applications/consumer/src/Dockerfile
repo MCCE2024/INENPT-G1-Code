@@ -1,5 +1,5 @@
 # Use specific version for better security and reproducibility
-FROM node:16-alpine
+FROM node:22-alpine
 
 # Update system packages and install only necessary dependencies
 RUN apk update && \
