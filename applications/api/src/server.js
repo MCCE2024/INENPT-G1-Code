@@ -71,9 +71,11 @@ async function initializeDatabase() {
   try {
     logger.info("Initializing database tables...");
 
-    // Test tenant ID for initialization
-    const tenantId = "test_tenant";
+    // Get tenant ID from environment variable
+    const tenantId = process.env.TENANT_ID || "default";
     const schemaName = `tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+    logger.info(`Initializing database for tenant: ${tenantId}`);
 
     // Create tenant schema if it doesn't exist
     await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`);
@@ -97,15 +99,19 @@ async function initializeDatabase() {
   }
 }
 
-// Simple test middleware - no authentication for testing
-function testMiddleware(req, res, next) {
-  // Use a test tenant ID for all requests
-  req.tenantId = "test_tenant";
+// Tenant middleware - gets tenant from environment variable
+function tenantMiddleware(req, res, next) {
+  // Get tenant ID from environment variable
+  const tenantId = process.env.TENANT_ID || "default";
+
+  req.tenantId = tenantId;
   req.githubUser = {
-    login: "test_tenant",
-    id: 12345,
-    name: "Test User",
+    login: tenantId,
+    id: Date.now(),
+    name: `User from ${tenantId}`,
   };
+
+  logger.debug(`Request from tenant: ${tenantId}`);
   next();
 }
 
@@ -115,7 +121,7 @@ app.get("/health", (req, res) => {
 });
 
 // POST /api/messages - Store datetime message
-app.post("/api/messages", testMiddleware, async (req, res) => {
+app.post("/api/messages", tenantMiddleware, async (req, res) => {
   try {
     const { datetime, environment = "prod" } = req.body;
     const tenantId = req.tenantId;
@@ -175,7 +181,7 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 });
 
 // GET /api/messages - Retrieve datetime messages
-app.get("/api/messages", testMiddleware, async (req, res) => {
+app.get("/api/messages", tenantMiddleware, async (req, res) => {
   try {
     const tenantId = req.tenantId;
     const { environment = "prod", limit = 100 } = req.query;
@@ -224,7 +230,7 @@ app.get("/api/messages", testMiddleware, async (req, res) => {
 });
 
 // GET /api/tenants - Get tenant information
-app.get("/api/tenants", testMiddleware, async (req, res) => {
+app.get("/api/tenants", tenantMiddleware, async (req, res) => {
   try {
     const tenantId = req.tenantId;
 
@@ -266,9 +272,10 @@ async function startServer() {
     await initializeDatabase();
 
     app.listen(PORT, () => {
+      const tenantId = process.env.TENANT_ID || "default";
       logger.info(`API server running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
-      logger.info(`Using test tenant ID: test_tenant`);
+      logger.info(`Tenant ID: ${tenantId}`);
     });
   } catch (error) {
     logger.error("Failed to start server:", error);
