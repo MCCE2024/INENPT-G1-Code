@@ -9,10 +9,11 @@ As cloud computing students, we built a **complete microservices application** t
 
 - **Containerization** with Docker - packaging our applications consistently
 - **Continuous Integration/Continuous Deployment (CI/CD)** with GitHub Actions - automating our development workflow
-- **Message Queue Systems** - handling asynchronous communication between services
+- **HTTP-Based Service Communication** - handling synchronous communication between services
 - **Microservices Architecture** - breaking down applications into focused, independent services
 - **Container Orchestration** with Kubernetes - managing our containers in production
 - **GitOps** deployment with ArgoCD - treating infrastructure as code
+- **Database Security** with SSL/TLS - securing database connections
 
 ## 🏗️ Our Project: A Message Processing System
 
@@ -223,7 +224,6 @@ The CI/CD pipeline automates the same process:
 | **Producer** | ✅ Yes | Our Python datetime generator |
 | **Consumer** | ✅ Yes | Our Node.js web dashboard |
 | **API** | ✅ Yes | Our Node.js authentication service |
-| **RabbitMQ** | ❌ No | External message queue service |
 | **PostgreSQL** | ❌ No | External database service |
 
 ## 🏗️ Microservices: Why We Chose This Approach
@@ -406,7 +406,32 @@ app.get("/api/messages", async (req, res) => {
 ### API Service (`applications/api/src/server.js`)
 
 ```javascript
-// We learned about multi-tenancy and database management
+// We learned about multi-tenancy, database management, and SSL security
+// Read CA certificate for PostgreSQL SSL
+let caCert = null;
+try {
+  caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
+  logger.info("CA certificate loaded successfully");
+} catch (error) {
+  logger.warn("Could not load CA certificate:", error.message);
+}
+
+// PostgreSQL connection with SSL
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  ssl: process.env.DB_SSL === "require" 
+    ? {
+        rejectUnauthorized: false,
+        ca: caCert,
+      }
+    : false,
+});
+
+// Multi-tenant message storage
 app.post("/api/messages", testMiddleware, async (req, res) => {
   try {
     const { datetime, environment = "prod" } = req.body;
@@ -436,7 +461,7 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 ```
 
 > [!IMPORTANT]
-> **Multi-tenancy**: We learned that each tenant gets their own database schema. This ensures data isolation between different users/tenants.
+> **Multi-tenancy & Security**: We learned that each tenant gets their own database schema, and we secure all database connections with SSL/TLS encryption for production environments.
 
 ## 🎓 Key Concepts We Mastered
 
@@ -489,6 +514,51 @@ Our ArgoCD setup:
 - Automatically deploys when configuration changes
 - Provides a web UI to see deployment status
 - Enables rollbacks to previous versions
+
+### 4. **Database Security (SSL/TLS)**
+
+> [!IMPORTANT]
+> **Security First**: We learned to secure database connections using SSL/TLS certificates for production environments.
+
+#### PostgreSQL SSL Configuration
+
+Our API service uses SSL/TLS for secure database connections:
+
+```javascript
+// Read CA certificate for PostgreSQL SSL
+let caCert = null;
+try {
+  caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
+  logger.info("CA certificate loaded successfully");
+} catch (error) {
+  logger.warn("Could not load CA certificate:", error.message);
+}
+
+// PostgreSQL connection with SSL
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  ssl: process.env.DB_SSL === "require" 
+    ? {
+        rejectUnauthorized: false,
+        ca: caCert,
+      }
+    : false,
+});
+```
+
+> [!TIP]
+> **Our Security Learning**: We learned to use CA certificates to verify database server identity and encrypt data in transit. This is crucial for production environments where data security is paramount.
+
+#### Security Features We Implemented
+
+- **SSL/TLS Encryption**: All database traffic is encrypted
+- **Certificate Validation**: CA certificate validates server identity
+- **Environment-Based Security**: SSL enabled only in production
+- **Graceful Fallback**: System works even if certificate is missing
 
 ## 🌍 Real-World Applications We Now Understand
 
