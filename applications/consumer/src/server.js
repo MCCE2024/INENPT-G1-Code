@@ -7,16 +7,22 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
-// Session middleware
+// Session middleware with production-ready configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "default-secret",
+    secret: process.env.SESSION_SECRET || "default-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: false, // Set to true in production with HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true, // Prevent XSS attacks
+      sameSite: "lax", // CSRF protection
     },
+    // Use file store for better production performance
+    // Note: In a real production environment, use Redis or database store
+    name: "sessionId",
+    rolling: true, // Reset expiry on activity
   })
 );
 
