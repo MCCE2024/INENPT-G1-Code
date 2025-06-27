@@ -17,10 +17,10 @@ As cloud computing students, we built a **complete microservices application** t
 ## 🏗️ Our Project: A Message Processing System
 
 We built a system that:
-- **Producer** (Python): Generates datetime messages every minute
-- **RabbitMQ**: Stores messages temporarily (like a post office)
-- **Consumer** (Node.js): Displays messages through a web dashboard
-- **API** (Node.js): Handles user authentication and stores data in PostgreSQL
+- **Producer** (Python): Generates datetime messages and sends them via HTTP to the API
+- **API** (Node.js): Receives messages via HTTP and stores them in PostgreSQL
+- **Consumer** (Node.js): Fetches messages from the API via HTTP and displays them in a web dashboard
+- **PostgreSQL**: Stores all the datetime messages persistently
 
 ### Our Multi-Repository Architecture
 
@@ -42,17 +42,10 @@ Our project spans three repositories:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Producer  │───▶│  RabbitMQ   │───▶│  Consumer   │
-│  (Python)   │    │  (Message   │    │   (Node.js) │
-│             │    │   Queue)    │    │             │
+│   Producer  │───▶│     API     │───▶│  Consumer   │
+│  (Python)   │    │  (Node.js)  │    │   (Node.js) │
+│             │    │             │    │             │
 └─────────────┘    └─────────────┘    └─────────────┘
-                           │
-                           ▼
-                   ┌─────────────┐
-                   │     API     │
-                   │  (Node.js)  │
-                   │             │
-                   └─────────────┘
                            │
                            ▼
                    ┌─────────────┐
@@ -174,6 +167,55 @@ strategy:
 > [!NOTE]
 > **Performance Insight**: Each service builds independently. If one fails, the others continue. This is much faster than building sequentially!
 
+### Local Development vs. CI/CD
+
+> [!IMPORTANT]
+> **Two Build Approaches**: We learned to use both local build scripts for development and GitHub Actions for automated CI/CD.
+
+#### Local Build Scripts (Development)
+
+Each application has its own `build.sh` script for local development:
+
+```bash
+# Example: applications/api/src/build.sh
+#!/usr/bin/bash
+
+# Use timestamp as version
+VERSION=$(date +%Y%m%d-%H%M%S)
+IMAGE_NAME="argo-g1-api"
+REGISTRY="ghcr.io/mcce2024"
+
+# Authenticate with GitHub Container Registry
+cat "$TOKEN_PATH" | docker login ghcr.io -u mcce2024 --password-stdin
+
+# Build and push
+docker build -t ${REGISTRY}/${IMAGE_NAME}:${VERSION} .
+docker tag ${REGISTRY}/${IMAGE_NAME}:${VERSION} ${REGISTRY}/${IMAGE_NAME}:latest
+docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+docker push ${REGISTRY}/${IMAGE_NAME}:latest
+```
+
+> [!TIP]
+> **Why Local Scripts?** We use these for rapid development and testing. They allow us to build and push individual services without triggering the full CI/CD pipeline.
+
+#### GitHub Actions (Production)
+
+The CI/CD pipeline automates the same process:
+
+```yaml
+# .github/workflows/docker-build.yml
+- name: Build and push Docker image
+  uses: docker/build-push-action@v5
+  with:
+    context: ${{ matrix.context }}
+    file: ${{ matrix.dockerfile }}
+    push: true
+    tags: ${{ steps.meta.outputs.tags }}
+```
+
+> [!NOTE]
+> **Our Learning**: Local scripts are great for development, but CI/CD ensures consistent, automated builds for production. We learned to use both approaches appropriately.
+
 ### What Gets Built vs. What We Connect To
 
 | Component | Built by CI/CD? | Purpose |
@@ -190,10 +232,10 @@ strategy:
 
 Instead of one big application, we built **small, focused services**:
 
-- **Producer**: Only generates datetime messages
-- **Consumer**: Only displays messages via web UI
-- **API**: Only handles authentication and data storage
-- **RabbitMQ**: Only manages message queuing
+- **Producer**: Only generates datetime messages and sends them via HTTP
+- **Consumer**: Only fetches messages via HTTP and displays them via web UI
+- **API**: Only handles HTTP requests and stores data in PostgreSQL
+- **PostgreSQL**: Only stores and retrieves data
 
 > [!IMPORTANT]
 > **Key Learning**: Each service can be developed, deployed, and scaled independently. If one fails, the others keep working!
@@ -201,11 +243,14 @@ Instead of one big application, we built **small, focused services**:
 ### How Our Services Communicate
 
 ```
-Producer ──[datetime message]──▶ RabbitMQ ──[datetime message]──▶ Consumer
-                                    │
-                                    ▼
-                                 API ──[store/retrieve]──▶ PostgreSQL
+Producer ──[HTTP POST]──▶ API ──[HTTP GET]──▶ Consumer
+                │
+                ▼
+            PostgreSQL
 ```
+
+> [!NOTE]
+> **Our Design Choice**: We chose HTTP-based communication over message queues for simplicity. This makes our system easier to understand and debug, while still maintaining the benefits of microservices architecture.
 
 ## 🚀 How to Run Our Project
 
@@ -234,13 +279,31 @@ Producer ──[datetime message]──▶ RabbitMQ ──[datetime message]─�
    
    # Look at our CI/CD workflow
    cat .github/workflows/docker-build.yml
+   
+   # Check out our local build scripts
+   ls applications/*/src/build.sh
    ```
 
-3. **Run our application locally**:
+3. **Build and test individual services locally**:
    ```bash
-   # Start RabbitMQ (message queue)
-   docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+   # Build the API service locally
+   cd applications/api/src
+   ./build.sh
    
+   # Build the consumer service locally
+   cd applications/consumer/src
+   ./build.sh
+   
+   # Build the producer service locally
+   cd applications/producer/src
+   ./build.sh
+   ```
+
+> [!NOTE]
+> **Local Development**: These build scripts require a GitHub token in the root directory. They're perfect for testing changes before pushing to the main repository.
+
+4. **Run our application locally**:
+   ```bash
    # Start PostgreSQL (database)
    docker run -d --name postgres -e POSTGRES_PASSWORD=password -p 5432:5432 postgres:13
    
@@ -254,85 +317,126 @@ Producer ──[datetime message]──▶ RabbitMQ ──[datetime message]─�
    
    # Start our consumer service
    docker run -d --name consumer -p 3001:3000 \
-     -e RABBITMQ_HOST=host.docker.internal \
+     -e API_BASE_URL=http://host.docker.internal:3000 \
      ghcr.io/mcce2024/argo-g1-consumer:latest
    
    # Start our producer (runs as a job)
    docker run --rm \
-     -e RABBITMQ_HOST=host.docker.internal \
+     -e API_URL=http://host.docker.internal:3000 \
      ghcr.io/mcce2024/argo-g1-producer:latest
    ```
 
 4. **Access our application**:
    - **Consumer Dashboard**: http://localhost:3001
-   - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
    - **API Health Check**: http://localhost:3000/health
+   - **PostgreSQL**: localhost:5432 (if you need direct database access)
 
 ## 🔧 Code Insights: What We Learned
 
 ### Producer Service (`applications/producer/src/producer.py`)
 
 ```python
-# We learned about retry logic - this was crucial!
-def try_connect(max_retries=30, retry_delay=2):
-    """Attempts to connect to RabbitMQ with retry logic"""
+# We learned about HTTP retry logic - this was crucial!
+def send_to_api(message, max_retries=3, retry_delay=30):
+    """Send message to API with retry logic"""
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'MCCE-Producer-Service'
+    }
+    
+    endpoint = f"{api_url}/api/messages"
+    
     for attempt in range(max_retries):
         try:
-            # Create connection parameters
-            credentials = pika.PlainCredentials(
-                os.environ.get('RABBITMQ_USER', 'guest'),
-                os.environ.get('RABBITMQ_PASS', 'guest')
+            response = requests.post(
+                endpoint,
+                headers=headers,
+                json=message,
+                timeout=30
             )
-            # ... connection logic
-        except Exception as e:
-            print(f"Connection attempt {attempt + 1} failed: {e}")
+            
+            if response.status_code == 201:
+                logger.info(f"Successfully sent message to API: {response.json()}")
+                return True
+            else:
+                logger.error(f"API returned error {response.status_code}: {response.text}")
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+        
+        if attempt < max_retries - 1:
             time.sleep(retry_delay)
+    
+    return False
 ```
 
 > [!TIP]
-> **Why Retry Logic?** In cloud environments, services might not be ready immediately. This pattern ensures our producer waits for RabbitMQ to be available.
+> **Why HTTP Retry Logic?** In cloud environments, services might not be ready immediately. This pattern ensures our producer waits for the API to be available and handles network issues gracefully.
 
 ### Consumer Service (`applications/consumer/src/server.js`)
 
 ```javascript
-// We learned about environment detection
-const app = express();
-app.use(express.static('public'));
+// We learned about HTTP API integration
+app.get("/api/messages", async (req, res) => {
+  try {
+    const limit = req.query.limit || 50;
+    const apiUrl = `${API_BASE_URL}/api/messages?limit=${limit}`;
 
-// RabbitMQ connection with retry
-async function connectQueue() {
-    let retries = 10;
-    while (retries > 0) {
-        try {
-            // ... connection logic
-            break;
-        } catch (error) {
-            retries--;
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
     }
-}
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({
+      error: "Failed to fetch messages",
+      details: error.message,
+    });
+  }
+});
 ```
 
 > [!NOTE]
-> **Environment Detection**: We learned to automatically detect if we're running in test or production based on the RabbitMQ port. This is a common pattern in cloud applications.
+> **HTTP Integration**: We learned to use the Fetch API to communicate between services. This is a common pattern in microservices architecture for service-to-service communication.
 
 ### API Service (`applications/api/src/server.js`)
 
 ```javascript
-// We learned about multi-tenancy
-app.post('/api/messages', async (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const githubUser = await validateGitHubToken(token);
-    const schemaName = `tenant_${githubUser}`;
-    
-    // Create tenant-specific schema if it doesn't exist
-    await createTenantSchema(schemaName);
+// We learned about multi-tenancy and database management
+app.post("/api/messages", testMiddleware, async (req, res) => {
+  try {
+    const { datetime, environment = "prod" } = req.body;
+    const tenantId = req.tenantId;
+
+    // Create tenant schema if it doesn't exist
+    await pool.query(`
+      CREATE SCHEMA IF NOT EXISTS tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}
+    `);
+
+    // Insert the message
+    const result = await pool.query(
+      `INSERT INTO tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}.messages 
+       (datetime, environment) VALUES ($1, $2) RETURNING *`,
+      [datetime, environment]
+    );
+
+    res.status(201).json({
+      message: "Message stored successfully",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    logger.error("Error storing message:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 ```
 
 > [!IMPORTANT]
-> **Multi-tenancy**: We learned that each GitHub user gets their own database schema. This ensures data isolation between different users/tenants.
+> **Multi-tenancy**: We learned that each tenant gets their own database schema. This ensures data isolation between different users/tenants.
 
 ## 🎓 Key Concepts We Mastered
 
@@ -347,15 +451,16 @@ Our project uses Kubernetes with:
 - **Services**: Internal networking between containers
 - **Network Policies**: Security isolation
 
-### 2. **Message Queues (RabbitMQ)**
+### 2. **HTTP-Based Service Communication**
 
 > [!TIP]
-> **Our Analogy**: Think of it like a post office. Messages are sent to queues, and consumers pick them up when ready. This decouples services and handles traffic spikes.
+> **Our Approach**: We chose HTTP-based communication between services for simplicity and ease of debugging. This is a common pattern in microservices architecture.
 
 What we learned:
-- **Asynchronous processing**: Services don't wait for each other
-- **Load balancing**: Multiple consumers can process messages
-- **Reliability**: Messages aren't lost if a service is down
+- **RESTful APIs**: Standard HTTP methods (GET, POST) for service communication
+- **Error handling**: Proper HTTP status codes and error responses
+- **Retry logic**: Handling network failures and service unavailability
+- **Service discovery**: Using environment variables for service URLs
 
 ### 3. **GitOps (ArgoCD)**
 
@@ -388,22 +493,22 @@ Our ArgoCD setup:
 ## 🌍 Real-World Applications We Now Understand
 
 ### E-commerce Platform
-- **Producer**: Inventory updates, order notifications
-- **Consumer**: Email notifications, dashboard updates
-- **API**: User authentication, order management
-- **Message Queue**: Handles Black Friday traffic spikes
+- **Producer**: Inventory updates, order notifications sent via HTTP
+- **Consumer**: Email notifications, dashboard updates via HTTP API calls
+- **API**: User authentication, order management via RESTful endpoints
+- **Database**: Persistent storage of orders, inventory, and user data
 
 ### Social Media Platform
-- **Producer**: New posts, comments, likes
-- **Consumer**: News feed updates, notifications
-- **API**: User profiles, content management
-- **Message Queue**: Processes millions of interactions
+- **Producer**: New posts, comments, likes sent via HTTP
+- **Consumer**: News feed updates, notifications via HTTP API calls
+- **API**: User profiles, content management via RESTful endpoints
+- **Database**: Persistent storage of posts, user data, and interactions
 
 ### IoT Data Processing
-- **Producer**: Sensor data from devices
-- **Consumer**: Analytics dashboards, alerts
-- **API**: Device management, user access
-- **Message Queue**: Handles burst data from thousands of devices
+- **Producer**: Sensor data from devices sent via HTTP
+- **Consumer**: Analytics dashboards, alerts via HTTP API calls
+- **API**: Device management, user access via RESTful endpoints
+- **Database**: Persistent storage of sensor data and device information
 
 ## 🚀 What We Want to Learn Next
 
@@ -449,10 +554,58 @@ Our ArgoCD setup:
   - **Solution**: Automated CI/CD pipeline
 
 - **Challenge**: Services couldn't communicate reliably
-  - **Solution**: Message queues with RabbitMQ
+  - **Solution**: HTTP-based communication with retry logic
 
 - **Challenge**: Managing multiple containers
   - **Solution**: Kubernetes orchestration
+
+- **Challenge**: Need for rapid local development and testing
+  - **Solution**: Individual build scripts for each service
+
+### What We Learned About Build Scripts
+
+> [!TIP]
+> **Build Script Insights**: We discovered that having both local and automated build processes gives us flexibility and reliability.
+
+#### Key Concepts from Our Build Scripts
+
+1. **Versioning Strategy**:
+   ```bash
+   VERSION=$(date +%Y%m%d-%H%M%S)
+   ```
+   - We use timestamps for versioning during development
+   - This ensures each build has a unique identifier
+   - Helps with debugging and rollback scenarios
+
+2. **Registry Authentication**:
+   ```bash
+   cat "$TOKEN_PATH" | docker login ghcr.io -u mcce2024 --password-stdin
+   ```
+   - Secure authentication with GitHub Container Registry
+   - Token-based authentication for automated processes
+   - Proper cleanup with `docker logout`
+
+3. **Image Tagging Strategy**:
+   ```bash
+   docker tag ${REGISTRY}/${IMAGE_NAME}:${VERSION} ${REGISTRY}/${IMAGE_NAME}:latest
+   ```
+   - Both versioned and `latest` tags for flexibility
+   - Versioned tags for specific deployments
+   - `latest` tag for easy testing and development
+
+4. **Error Handling**:
+   ```bash
+   if [ ! -f "$TOKEN_PATH" ]; then
+       echo "Could not read GitHub token from '$TOKEN_PATH' file"
+       exit 1
+   fi
+   ```
+   - Proper error checking for required files
+   - Clear error messages for debugging
+   - Graceful failure handling
+
+> [!NOTE]
+> **Our Discovery**: These build scripts taught us about automation, security, and the importance of having both development and production build processes.
 
 ## 📚 Resources That Helped Us
 
