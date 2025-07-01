@@ -1,21 +1,23 @@
 # INENPT-G1-Code: Our Application Development Learning Journey
 
-> [!NOTE]
-> **Welcome to our learning journey!** This repository contains the **application code** for our cloud-native microservices. We're sharing our discoveries, challenges, and insights to help other students understand modern application development in the cloud.
+> [!NOTE] > **Welcome to our learning journey!** This repository contains the **application code** for our cloud-native microservices. We're sharing our discoveries, challenges, and insights to help other students understand modern application development in the cloud.
 
 ## 🧭 Repository Navigation Guide
 
 **For Students Learning Cloud Computing:**
+
 1. **Start Here** (INENPT-G1-Code) - Application development and microservices
 2. **Next**: [INENPT-G1-K8s](https://github.com/MCCE2024/INENPT-G1-K8s) - Kubernetes deployment and scaling
 3. **Finally**: [INENPT-G1-Argo](https://github.com/MCCE2024/INENPT-G1-Argo) - GitOps infrastructure and automation
 
 **For Professors Evaluating:**
+
 - **Requirements Coverage**: [See below](#-professor-requirements-how-we-met-each-one)
 - **Application Architecture**: [See below](#️-our-project-a-message-processing-system)
 - **Code Examples**: [See below](#-code-insights-what-we-learned)
 
 **For Developers Contributing:**
+
 - **Local Setup**: [See below](#-how-to-run-our-project)
 - **Build Process**: [See below](#-local-development-vs-cicd)
 - **Development Workflow**: [See below](#-our-complete-development-workflow)
@@ -48,7 +50,6 @@ INENPT-G1-Code/                           # This Repository: Application Code & 
 │   │   │   ├── server.js                 # Multi-tenant API with OAuth2
 │   │   │   ├── Dockerfile                # Container definition
 │   │   │   ├── build.sh                  # Local build script
-│   │   │   ├── ca.pem                    # SSL certificate for database
 │   │   │   └── package.json              # Dependencies
 │   │   └── README.md                     # Service documentation
 │   ├── consumer/                         # Consumer Service (Node.js Web Dashboard)
@@ -73,8 +74,8 @@ INENPT-G1-Code/                           # This Repository: Application Code & 
 └── README.md                             # This file
 ```
 
-> [!NOTE]
-> **Related Repositories:**
+> [!NOTE] > **Related Repositories:**
+>
 > - **Kubernetes Deployment**: See [INENPT-G1-K8s](https://github.com/MCCE2024/INENPT-G1-K8s) for deployment manifests
 > - **GitOps Infrastructure**: See [INENPT-G1-Argo](https://github.com/MCCE2024/INENPT-G1-Argo) for ArgoCD configuration
 > - **Complete Setup**: See [INENPT-G1-Argo/README.md](https://github.com/MCCE2024/INENPT-G1-Argo) for full deployment guide
@@ -94,6 +95,7 @@ As cloud computing students, we built a **complete microservices application** t
 ## 🏗️ Our Project: A Message Processing System
 
 We built a system that:
+
 - **Producer** (Python): Generates datetime messages and sends them via HTTP to the API
 - **API** (Node.js): Receives messages via HTTP and stores them in PostgreSQL
 - **Consumer** (Node.js): Fetches messages from the API via HTTP and displays them in a web dashboard
@@ -102,11 +104,11 @@ We built a system that:
 ### Our Application Architecture
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+┌─────────────┐    ┌─────────────┐     ┌─────────────┐
 │   Producer  │───▶│     API     │───▶│  Consumer   │
-│  (Python)   │    │  (Node.js)  │    │   (Node.js) │
-│             │    │             │    │             │
-└─────────────┘    └─────────────┘    └─────────────┘
+│  (Python)   │    │  (Node.js)  │     │   (Node.js) │
+│             │    │             │     │             │
+└─────────────┘    └─────────────┘     └─────────────┘
                            │
                            ▼
                    ┌─────────────┐
@@ -115,17 +117,16 @@ We built a system that:
                    └─────────────┘
 ```
 
-> [!TIP]
-> **Our "Aha!" Moment**: We realized this pattern is used everywhere - from social media feeds to e-commerce order processing. Understanding this helped us see the bigger picture of cloud computing.
+> [!TIP] > **Our "Aha!" Moment**: We realized this pattern is used everywhere - from social media feeds to e-commerce order processing. Understanding this helped us see the bigger picture of cloud computing.
 
 ## 🐳 What We Learned About Containerization
 
-> [!IMPORTANT]
-> **Key Learning**: Containers solved our biggest problem - "It works on my machine!" Now our applications run the same way everywhere.
+> [!IMPORTANT] > **Key Learning**: Containers solved our biggest problem - "It works on my machine!" Now our applications run the same way everywhere.
 
 ### Our Container Journey
 
 We started with simple scripts, but quickly learned that containers are like **shipping containers for software**:
+
 - Each container has everything our application needs
 - They're lightweight and portable
 - They run consistently across different environments
@@ -133,19 +134,17 @@ We started with simple scripts, but quickly learned that containers are like **s
 
 ### Our Three Containerized Services
 
-| Service | Technology | What We Learned | Container Image |
-|---------|------------|-----------------|-----------------|
-| **Producer** | Python | How to package Python apps with dependencies | `ghcr.io/mcce2024/argo-g1-producer` |
-| **Consumer** | Node.js | Building web interfaces in containers | `ghcr.io/mcce2024/argo-g1-consumer` |
-| **API** | Node.js | Multi-tenant applications with authentication | `ghcr.io/mcce2024/argo-g1-api` |
+| Service      | Technology | What We Learned                               | Container Image                     |
+| ------------ | ---------- | --------------------------------------------- | ----------------------------------- |
+| **Producer** | Python     | How to package Python apps with dependencies  | `ghcr.io/mcce2024/argo-g1-producer` |
+| **Consumer** | Node.js    | Building web interfaces in containers         | `ghcr.io/mcce2024/argo-g1-consumer` |
+| **API**      | Node.js    | Multi-tenant applications with authentication | `ghcr.io/mcce2024/argo-g1-api`      |
 
-> [!NOTE]
-> **Our Discovery**: Each service uses the technology best suited for its job. Python for data generation, Node.js for web services. This is a key principle of microservices!
+> [!NOTE] > **Our Discovery**: Each service uses the technology best suited for its job. Python for data generation, Node.js for web services. This is a key principle of microservices!
 
 ## 🔄 Our CI/CD Learning Experience
 
-> [!IMPORTANT]
-> **Biggest Revelation**: CI/CD transformed our development process. No more manual deployments or "forgot to test" moments!
+> [!IMPORTANT] > **Biggest Revelation**: CI/CD transformed our development process. No more manual deployments or "forgot to test" moments!
 
 ### What CI/CD Means to Us
 
@@ -165,8 +164,7 @@ on:
       - "applications/producer/**"
 ```
 
-> [!TIP]
-> **Smart Discovery**: We learned to only trigger builds when we change application code, not documentation. This saves time and resources!
+> [!TIP] > **Smart Discovery**: We learned to only trigger builds when we change application code, not documentation. This saves time and resources!
 
 ### Our CI/CD Process
 
@@ -175,18 +173,16 @@ on:
 3. **Images are pushed** to GitHub Container Registry
 4. **ArgoCD automatically deploys** to our Kubernetes cluster
 
-> [!NOTE]
-> **Important Distinction**: Our CI/CD pipeline builds our three application containers (Producer, Consumer, API). RabbitMQ and PostgreSQL are external services that our applications connect to, but they're not built by our CI/CD pipeline.
+> [!NOTE] > **Important Distinction**: Our CI/CD pipeline builds our three application containers (Producer, Consumer, API). RabbitMQ and PostgreSQL are external services that our applications connect to, but they're not built by our CI/CD pipeline.
 
-> [!WARNING]
-> **Security Lesson**: We learned to use GitHub secrets (`GHCR_USR`, `GHCR_PAT`) for authentication. Never hardcode credentials!
+> [!WARNING] > **Security Lesson**: We learned to use GitHub secrets (`GHCR_USR`, `GHCR_PAT`) for authentication. Never hardcode credentials!
 
 ### Our Complete Development Workflow
 
-> [!IMPORTANT]
-> **End-to-End Process**: Here's how our three repositories work together in a complete GitOps workflow.
+> [!IMPORTANT] > **End-to-End Process**: Here's how our three repositories work together in a complete GitOps workflow.
 
 #### 1. **Development Phase** (INENPT-G1-Code)
+
 ```bash
 # We develop our application code
 git add .
@@ -195,26 +191,12 @@ git push origin main
 ```
 
 #### 2. **CI/CD Phase** (INENPT-G1-Code)
+
 - GitHub Actions automatically builds our containers
 - Images are pushed to GitHub Container Registry
 - Build status is reported back to us
 
-#### 3. **Deployment Configuration** (INENPT-G1-K8s)
-```bash
-# We update Kubernetes manifests with new image versions
-git clone https://github.com/MCCE2024/INENPT-G1-K8s.git
-# Update deployment.yaml with new image tags
-git commit -m "Update to v1.2.3"
-git push origin main
-```
-
-#### 4. **GitOps Deployment** (INENPT-G1-Argo)
-- ArgoCD monitors INENPT-G1-K8s for changes
-- Automatically deploys new versions to Kubernetes
-- Provides deployment status and rollback capabilities
-
-> [!TIP]
-> **Our Discovery**: This workflow ensures that every deployment is traceable, auditable, and can be rolled back if needed. We learned that GitOps is not just about automation, but about reliability and transparency.
+> [!TIP] > **Our Discovery**: This workflow ensures that every deployment is traceable, auditable, and can be rolled back if needed. We learned that GitOps is not just about automation, but about reliability and transparency.
 
 ### Our Build Strategy
 
@@ -225,13 +207,11 @@ strategy:
     service: [api, consumer, producer]
 ```
 
-> [!NOTE]
-> **Performance Insight**: Each service builds independently. If one fails, the others continue. This is much faster than building sequentially!
+> [!NOTE] > **Performance Insight**: Each service builds independently. If one fails, the others continue. This is much faster than building sequentially!
 
 ### Local Development vs. CI/CD
 
-> [!IMPORTANT]
-> **Two Build Approaches**: We learned to use both local build scripts for development and GitHub Actions for automated CI/CD.
+> [!IMPORTANT] > **Two Build Approaches**: We learned to use both local build scripts for development and GitHub Actions for automated CI/CD.
 
 #### Local Build Scripts (Development)
 
@@ -256,8 +236,7 @@ docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
 docker push ${REGISTRY}/${IMAGE_NAME}:latest
 ```
 
-> [!TIP]
-> **Why Local Scripts?** We use these for rapid development and testing. They allow us to build and push individual services without triggering the full CI/CD pipeline.
+> [!TIP] > **Why Local Scripts?** We use these for rapid development and testing. They allow us to build and push individual services without triggering the full CI/CD pipeline.
 
 #### GitHub Actions (Production)
 
@@ -274,17 +253,16 @@ The CI/CD pipeline automates the same process:
     tags: ${{ steps.meta.outputs.tags }}
 ```
 
-> [!NOTE]
-> **Our Learning**: Local scripts are great for development, but CI/CD ensures consistent, automated builds for production. We learned to use both approaches appropriately.
+> [!NOTE] > **Our Learning**: Local scripts are great for development, but CI/CD ensures consistent, automated builds for production. We learned to use both approaches appropriately.
 
 ### What Gets Built vs. What We Connect To
 
-| Component | Built by CI/CD? | Purpose |
-|-----------|----------------|---------|
-| **Producer** | ✅ Yes | Our Python datetime generator |
-| **Consumer** | ✅ Yes | Our Node.js web dashboard |
-| **API** | ✅ Yes | Our Node.js authentication service |
-| **PostgreSQL** | ❌ No | External database service |
+| Component      | Built by CI/CD? | Purpose                            |
+| -------------- | --------------- | ---------------------------------- |
+| **Producer**   | ✅ Yes          | Our Python datetime generator      |
+| **Consumer**   | ✅ Yes          | Our Node.js web dashboard          |
+| **API**        | ✅ Yes          | Our Node.js authentication service |
+| **PostgreSQL** | ❌ No           | External database service          |
 
 ## 🏗️ Microservices: Why We Chose This Approach
 
@@ -297,20 +275,18 @@ Instead of one big application, we built **small, focused services**:
 - **API**: Only handles HTTP requests and stores data in PostgreSQL
 - **PostgreSQL**: Only stores and retrieves data
 
-> [!IMPORTANT]
-> **Key Learning**: Each service can be developed, deployed, and scaled independently. If one fails, the others keep working!
+> [!IMPORTANT] > **Key Learning**: Each service can be developed, deployed, and scaled independently. If one fails, the others keep working!
 
 ### How Our Services Communicate
 
 ```
 Producer ──[HTTP POST]──▶ API ──[HTTP GET]──▶ Consumer
-                │
-                ▼
-            PostgreSQL
+                            │
+                            ▼
+                         PostgreSQL
 ```
 
-> [!NOTE]
-> **Our Design Choice**: We chose HTTP-based communication over message queues for simplicity. This makes our system easier to understand and debug, while still maintaining the benefits of microservices architecture.
+> [!NOTE] > **Our Design Choice**: We chose HTTP-based communication over message queues for simplicity. This makes our system easier to understand and debug, while still maintaining the benefits of microservices architecture.
 
 ## 🚀 How to Run Our Project
 
@@ -321,52 +297,54 @@ Producer ──[HTTP POST]──▶ API ──[HTTP GET]──▶ Consumer
 - **Basic command line knowledge**
 - **GitHub account** (for container registry access)
 
-> [!CAUTION]
-> **Windows Tip**: Make sure Docker Desktop is running before executing any Docker commands. You'll see a whale icon in your system tray when it's active.
+> [!CAUTION] > **Windows Tip**: Make sure Docker Desktop is running before executing any Docker commands. You'll see a whale icon in your system tray when it's active.
 
 ### Our Setup Instructions
 
 1. **Clone our repository**:
+
    ```bash
    git clone https://github.com/your-username/INENPT-G1-Code.git
    cd INENPT-G1-Code
    ```
 
 2. **Explore our structure**:
+
    ```bash
    # See all our applications
    ls applications/
-   
+
    # Look at our CI/CD workflow
    cat .github/workflows/docker-build.yml
-   
+
    # Check out our local build scripts
    ls applications/*/src/build.sh
    ```
 
 3. **Build and test individual services locally**:
+
    ```bash
    # Build the API service locally
    cd applications/api/src
    ./build.sh
-   
+
    # Build the consumer service locally
    cd applications/consumer/src
    ./build.sh
-   
+
    # Build the producer service locally
    cd applications/producer/src
    ./build.sh
    ```
 
-> [!NOTE]
-> **Local Development**: These build scripts require a GitHub token in the root directory. They're perfect for testing changes before pushing to the main repository.
+> [!NOTE] > **Local Development**: These build scripts require a GitHub token in the root directory. They're perfect for testing changes before pushing to the main repository.
 
 4. **Run our application locally**:
+
    ```bash
    # Start PostgreSQL (database)
    docker run -d --name postgres -e POSTGRES_PASSWORD=password -p 5432:5432 postgres:13
-   
+
    # Start our API service
    docker run -d --name api -p 3000:3000 \
      -e DB_HOST=host.docker.internal \
@@ -374,19 +352,19 @@ Producer ──[HTTP POST]──▶ API ──[HTTP GET]──▶ Consumer
      -e DB_USER=postgres \
      -e DB_PASSWORD=password \
      ghcr.io/mcce2024/argo-g1-api:latest
-   
+
    # Start our consumer service
    docker run -d --name consumer -p 3001:3000 \
      -e API_BASE_URL=http://host.docker.internal:3000 \
      ghcr.io/mcce2024/argo-g1-consumer:latest
-   
+
    # Start our producer (runs as a job)
    docker run --rm \
      -e API_URL=http://host.docker.internal:3000 \
      ghcr.io/mcce2024/argo-g1-producer:latest
    ```
 
-4. **Access our application**:
+5. **Access our application**:
    - **Consumer Dashboard**: http://localhost:3001
    - **API Health Check**: http://localhost:3000/health
    - **PostgreSQL**: localhost:5432 (if you need direct database access)
@@ -403,9 +381,9 @@ def send_to_api(message, max_retries=3, retry_delay=30):
         'Content-Type': 'application/json',
         'User-Agent': 'MCCE-Producer-Service'
     }
-    
+
     endpoint = f"{api_url}/api/messages"
-    
+
     for attempt in range(max_retries):
         try:
             response = requests.post(
@@ -414,24 +392,23 @@ def send_to_api(message, max_retries=3, retry_delay=30):
                 json=message,
                 timeout=30
             )
-            
+
             if response.status_code == 201:
                 logger.info(f"Successfully sent message to API: {response.json()}")
                 return True
             else:
                 logger.error(f"API returned error {response.status_code}: {response.text}")
-                
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
-        
+
         if attempt < max_retries - 1:
             time.sleep(retry_delay)
-    
+
     return False
 ```
 
-> [!TIP]
-> **Why HTTP Retry Logic?** In cloud environments, services might not be ready immediately. This pattern ensures our producer waits for the API to be available and handles network issues gracefully.
+> [!TIP] > **Why HTTP Retry Logic?** In cloud environments, services might not be ready immediately. This pattern ensures our producer waits for the API to be available and handles network issues gracefully.
 
 ### Consumer Service (`applications/consumer/src/server.js`)
 
@@ -460,8 +437,7 @@ app.get("/api/messages", async (req, res) => {
 });
 ```
 
-> [!NOTE]
-> **HTTP Integration**: We learned to use the Fetch API to communicate between services. This is a common pattern in microservices architecture for service-to-service communication.
+> [!NOTE] > **HTTP Integration**: We learned to use the Fetch API to communicate between services. This is a common pattern in microservices architecture for service-to-service communication.
 
 ### API Service (`applications/api/src/server.js`)
 
@@ -470,11 +446,18 @@ app.get("/api/messages", async (req, res) => {
 // Read CA certificate for PostgreSQL SSL
 let caCert = null;
 try {
-  caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
-  logger.info("CA certificate loaded successfully");
+  // Use the path from environment variable or default to mounted ConfigMap location
+  const caCertPath = process.env.DB_CA_CERT_PATH || "/etc/ssl/certs/ca.pem";
+  caCert = fs.readFileSync(caCertPath).toString();
+  logger.info(`CA certificate loaded successfully from: ${caCertPath}`);
 } catch (error) {
   logger.warn("Could not load CA certificate:", error.message);
+  logger.warn("SSL connection will use system CA certificates");
 }
+
+// Debug: print DB user and password
+logger.info(`DB_USER: ${process.env.DB_USER}`);
+// logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`); // Commented out for security
 
 // PostgreSQL connection with SSL
 const pool = new Pool({
@@ -483,31 +466,64 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: process.env.DB_SSL === "require" 
-    ? {
-        rejectUnauthorized: false,
-        ca: caCert,
-      }
-    : false,
+  ssl:
+    process.env.DB_SSL === "require"
+      ? {
+          rejectUnauthorized: false,
+          ca: caCert,
+        }
+      : false,
 });
 
-// Multi-tenant message storage
-app.post("/api/messages", testMiddleware, async (req, res) => {
+// POST /api/messages - Store datetime message
+app.post("/api/messages", tenantMiddleware, async (req, res) => {
   try {
     const { datetime, environment = "prod" } = req.body;
     const tenantId = req.tenantId;
 
+    if (!datetime) {
+      return res.status(400).json({ error: "datetime is required" });
+    }
+
     // Create tenant schema if it doesn't exist
     await pool.query(`
-      CREATE SCHEMA IF NOT EXISTS tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}
+      CREATE SCHEMA IF NOT EXISTS tenant_${tenantId.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}
+    `);
+
+    // Create messages table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tenant_${tenantId.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}.messages (
+        id SERIAL PRIMARY KEY,
+        datetime TIMESTAMP NOT NULL,
+        environment VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
     `);
 
     // Insert the message
     const result = await pool.query(
-      `INSERT INTO tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}.messages 
-       (datetime, environment) VALUES ($1, $2) RETURNING *`,
+      `
+      INSERT INTO tenant_${tenantId.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}.messages (datetime, environment)
+      VALUES ($1, $2)
+      RETURNING id, datetime, environment, created_at
+    `,
       [datetime, environment]
     );
+
+    logger.info(`Message stored for tenant ${tenantId}`, {
+      tenantId,
+      environment,
+      messageId: result.rows[0].id,
+    });
 
     res.status(201).json({
       message: "Message stored successfully",
@@ -520,129 +536,206 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 });
 ```
 
-> [!IMPORTANT]
-> **Multi-tenancy & Security**: We learned that each tenant gets their own database schema, and we secure all database connections with SSL/TLS encryption for production environments.
+> [!IMPORTANT] > **Multi-tenancy & Security**: We learned that each tenant gets their own database schema, and we secure all database connections with SSL/TLS encryption for production environments.
 
 ## 🎓 Key Application Concepts
 
 ### 1. **OAuth2 Authentication**
 
-> [!WARNING]
-> **OAuth2 Authentication - Our Biggest Challenge**
-> 
+> [!WARNING] > **OAuth2 Authentication - Our Biggest Challenge**
+>
 > We thought OAuth2 would be simple - just add a few endpoints. Reality was much harder:
-> 
+>
 > ```javascript
 > // What we thought would work:
 > app.get("/auth/github", (req, res) => {
 >   res.redirect("https://github.com/login/oauth/authorize");
 > });
-> 
+>
 > // What actually worked after days of debugging:
-> app.get("/auth/github", (req, res) => {
->   const state = crypto.randomBytes(16).toString('hex');
->   req.session.oauth_state = state;
->   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=user:email&state=${state}`;
->   res.redirect(githubAuthUrl);
-> });
+> app.get("/auth/github/callback", async (req, res) => {
+>   const { code, error } = req.query;
+>
+>   if (error) {
+>     console.error("GitHub OAuth error:", error);
+>     return res.redirect("/?error=oauth_failed");
+>   }
+>
+>   if (!code) {
+>     return res.redirect("/?error=oauth_no_code");
+>   }
+>
+>   try {
+>     // Exchange code for access token
+>     const tokenResponse = await fetch(
+>       "https://github.com/login/oauth/access_token",
+>       {
+>         method: "POST",
+>         headers: {
+>           Accept: "application/json",
+>           "Content-Type": "application/json",
+>         },
+>         body: JSON.stringify({
+>           client_id: GITHUB_CLIENT_ID,
+>           client_secret: GITHUB_CLIENT_SECRET,
+>           code: code,
+>         }),
+>       }
+>     );
+>
+>     const tokenData = await tokenResponse.json();
+>
+>     if (tokenData.error) {
+>       console.error("GitHub token error:", tokenData.error);
+>       return res.redirect("/?error=oauth_token_failed");
+>     }
+>
+>     // Get user information
+>     const userResponse = await fetch("https://api.github.com/user", {
+>       headers: {
+>         Authorization: `Bearer ${tokenData.access_token}`,
+>         Accept: "application/vnd.github.v3+json",
+>       },
+>     });
+>
+>     const userData = await userResponse.json();
+>
+>     // Store user in session
+>     req.session.githubUser = {
+>       id: userData.id,
+>       login: userData.login,
+>       name: userData.name,
+>       email: userData.email,
+>       avatar_url: userData.avatar_url,
+>     };
+>
+>     console.log(`User authenticated: ${userData.login} (${userData.name})`);
+>     res.redirect("/dashboard");
+>   } catch (error) {
+>     console.error("OAuth callback error:", error);
+>     res.redirect("/?error=oauth_callback_failed");
+>   }
 > ```
-> 
+>
 > **Our Learning**: OAuth2 requires proper state management, session handling, and error handling. We learned that security is never as simple as it looks.
 
 ### 2. **Database Security (SSL/TLS)**
 
-> [!CAUTION]
-> **Database SSL/TLS - The ca.pem Mystery**
-> 
+> [!CAUTION] > **Database SSL/TLS - The ca.pem Mystery**
+>
 > Our biggest debugging nightmare was the database connection:
-> 
+>
 > ```javascript
 > // This kept failing silently:
 > const pool = new Pool({
 >   host: process.env.DB_HOST,
->   ssl: true  // This wasn't enough!
+>   ssl: true, // This wasn't enough!
 > });
-> 
+>
 > // What actually worked:
 > let caCert = null;
 > try {
->   caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
->   logger.info("CA certificate loaded successfully");
+>   // Use the path from environment variable or default to mounted ConfigMap location
+>   const caCertPath = process.env.DB_CA_CERT_PATH || "/etc/ssl/certs/ca.pem";
+>   caCert = fs.readFileSync(caCertPath).toString();
+>   logger.info(`CA certificate loaded successfully from: ${caCertPath}`);
 > } catch (error) {
 >   logger.warn("Could not load CA certificate:", error.message);
+>   logger.warn("SSL connection will use system CA certificates");
 > }
-> 
+>
+> // Debug: print DB user and password
+> logger.info(`DB_USER: ${process.env.DB_USER}`);
+> // logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`); // Commented out for security
+>
+> // PostgreSQL connection pool
 > const pool = new Pool({
 >   host: process.env.DB_HOST,
->   ssl: process.env.DB_SSL === "require" 
->     ? {
->         rejectUnauthorized: false,
->         ca: caCert,  // This was the missing piece!
->       }
->     : false,
+>   port: process.env.DB_PORT || 5432,
+>   database: process.env.DB_NAME,
+>   user: process.env.DB_USER,
+>   password: process.env.DB_PASSWORD,
+>   ssl:
+>     process.env.DB_SSL === "require"
+>       ? {
+>           rejectUnauthorized: false,
+>           ca: caCert,
+>         }
+>       : false,
 > });
 > ```
-> 
+>
 > **Our Learning**: SSL certificates aren't optional in production. We spent hours debugging connection issues before realizing we needed proper certificate handling.
 
 ### 3. **Multi-Tenant Applications**
 
-> [!TIP]
-> **Multi-Tenancy - Data Isolation**
-> 
+> [!TIP] > **Multi-Tenancy - Data Isolation**
+>
 > We learned to create isolated database schemas for each tenant:
-> 
+>
 > ```javascript
-> // Create tenant-specific schema
+> // Get tenant ID from environment variable
+> const tenantId = process.env.TENANT_ID || "default";
 > const schemaName = `tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}`;
+>
+> logger.info(`Initializing database for tenant: ${tenantId}`);
+>
+> // Create tenant schema if it doesn't exist
 > await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`);
-> 
-> // Store data in tenant's schema
+> logger.info(`Schema ${schemaName} created/verified`);
+>
+> // Create messages table if it doesn't exist
 > await pool.query(`
->   INSERT INTO ${schemaName}.messages (datetime, environment)
->   VALUES ($1, $2)
-> `, [datetime, environment]);
+>       CREATE TABLE IF NOT EXISTS ${schemaName}.messages (
+>         id SERIAL PRIMARY KEY,
+>         datetime TIMESTAMP NOT NULL,
+>         environment VARCHAR(10) NOT NULL,
+>         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+>       )
+>     `);
 > ```
-> 
-> **Our Learning**: Multi-tenancy requires careful data isolation. Each tenant gets their own database schema to ensure complete data separation.
+>
+> **Our Learning**: Multi-tenancy requires careful data isolation. Each tenant > gets their own database schema to ensure complete data separation.
 
 ### 4. **HTTP-Based Service Communication**
 
-> [!NOTE]
-> **Service Communication - HTTP vs Message Queues**
-> 
+> [!NOTE] > **Service Communication - HTTP vs Message Queues**
+>
 > We chose HTTP for simplicity and debugging:
-> 
+>
 > ```javascript
 > // Producer sends to API via HTTP
 > const response = await fetch(`${API_URL}/api/messages`, {
->   method: 'POST',
->   headers: { 'Content-Type': 'application/json' },
->   body: JSON.stringify({ datetime, environment })
+>   method: "POST",
+>   headers: { "Content-Type": "application/json" },
+>   body: JSON.stringify({ datetime, environment }),
 > });
-> 
+>
 > // Consumer fetches from API via HTTP
 > const response = await fetch(`${API_URL}/api/messages?limit=50`);
 > const messages = await response.json();
 > ```
-> 
+>
 > **Our Learning**: HTTP is easier to debug than message queues. We can use browser dev tools, curl, and standard HTTP debugging techniques.
 
 ## 🌍 Real-World Applications
 
 ### E-commerce Platform
+
 - **Producer**: Inventory updates, order notifications sent via HTTP
 - **Consumer**: Email notifications, dashboard updates via HTTP API calls
 - **API**: User authentication, order management via RESTful endpoints
 - **Database**: Persistent storage of orders, inventory, and user data
 
 ### Social Media Platform
+
 - **Producer**: New posts, comments, likes sent via HTTP
 - **Consumer**: News feed updates, notifications via HTTP API calls
 - **API**: User profiles, content management via RESTful endpoints
 - **Database**: Persistent storage of posts, user data, and interactions
 
 ### IoT Data Processing
+
 - **Producer**: Sensor data from devices sent via HTTP
 - **Consumer**: Analytics dashboards, alerts via HTTP API calls
 - **API**: Device management, user access via RESTful endpoints
@@ -651,29 +744,32 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 ## 🚀 What We Want to Learn Next
 
 ### 1. **Add Monitoring**
+
 - Implement Prometheus metrics
 - Add Grafana dashboards
 - Set up alerting
 
 ### 2. **Enhance Security**
+
 - Add service mesh (Istio)
 - Implement mTLS between services
 - Add secrets management
 
 ### 3. **Scale Our Application**
+
 - Add horizontal pod autoscaling
 - Implement database sharding
 - Add caching layers
 
 ### 4. **Advanced CI/CD**
+
 - Add automated testing
 - Implement blue-green deployments
 - Add security scanning
 
 ## 🤝 Our Learning Journey
 
-> [!TIP]
-> **Our Advice**: The best way to understand cloud computing is to modify this project and see how changes affect the system.
+> [!TIP] > **Our Advice**: The best way to understand cloud computing is to modify this project and see how changes affect the system.
 
 ### How We Learned
 
@@ -686,15 +782,19 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 ### Our Challenges and Solutions
 
 - **Challenge**: "It works on my machine" problem
+
   - **Solution**: Containerization with Docker
 
 - **Challenge**: Manual deployments were error-prone
+
   - **Solution**: Automated CI/CD pipeline
 
 - **Challenge**: Services couldn't communicate reliably
+
   - **Solution**: HTTP-based communication with retry logic
 
 - **Challenge**: Managing multiple containers
+
   - **Solution**: Kubernetes orchestration
 
 - **Challenge**: Need for rapid local development and testing
@@ -702,31 +802,36 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 
 ### What We Learned About Build Scripts
 
-> [!TIP]
-> **Build Script Insights**: We discovered that having both local and automated build processes gives us flexibility and reliability.
+> [!TIP] > **Build Script Insights**: We discovered that having both local and automated build processes gives us flexibility and reliability.
 
 #### Key Concepts from Our Build Scripts
 
 1. **Versioning Strategy**:
+
    ```bash
    VERSION=$(date +%Y%m%d-%H%M%S)
    ```
+
    - We use timestamps for versioning during development
    - This ensures each build has a unique identifier
    - Helps with debugging and rollback scenarios
 
 2. **Registry Authentication**:
+
    ```bash
    cat "$TOKEN_PATH" | docker login ghcr.io -u mcce2024 --password-stdin
    ```
+
    - Secure authentication with GitHub Container Registry
    - Token-based authentication for automated processes
    - Proper cleanup with `docker logout`
 
 3. **Image Tagging Strategy**:
+
    ```bash
    docker tag ${REGISTRY}/${IMAGE_NAME}:${VERSION} ${REGISTRY}/${IMAGE_NAME}:latest
    ```
+
    - Both versioned and `latest` tags for flexibility
    - Versioned tags for specific deployments
    - `latest` tag for easy testing and development
@@ -742,15 +847,13 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
    - Clear error messages for debugging
    - Graceful failure handling
 
-> [!NOTE]
-> **Our Discovery**: These build scripts taught us about automation, security, and the importance of having both development and production build processes.
+> [!NOTE] > **Our Discovery**: These build scripts taught us about automation, security, and the importance of having both development and production build processes.
 
 ## 📚 Resources That Helped Us
 
 - [Docker Documentation](https://docs.docker.com/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [RabbitMQ Tutorial](https://www.rabbitmq.com/tutorials/)
 - [Microservices Patterns](https://microservices.io/patterns/)
 
 ---
@@ -759,17 +862,18 @@ app.post("/api/messages", testMiddleware, async (req, res) => {
 
 ### What This Project Taught Us
 
-> [!IMPORTANT]
-> **Our Biggest Discovery**: Cloud computing isn't about writing perfect code - it's about debugging distributed systems and building reliable, scalable applications.
+> [!IMPORTANT] > **Our Biggest Discovery**: Cloud computing isn't about writing perfect code - it's about debugging distributed systems and building reliable, scalable applications.
 
 #### **The Learning Journey**
 
 When we started this project, we thought cloud computing was about:
+
 - Writing code and deploying it
 - Using containers to package applications
 - Setting up basic infrastructure
 
 **What we actually learned:**
+
 - **Debugging is 80% of the work**: OAuth2, SSL/TLS, and distributed systems debugging
 - **Security is never optional**: Every component needs proper authentication and encryption
 - **Infrastructure matters**: How you deploy affects how you develop
@@ -778,18 +882,21 @@ When we started this project, we thought cloud computing was about:
 #### **Key Insights**
 
 **1. Application Development in the Cloud**
+
 - Microservices require different thinking than monolithic applications
 - HTTP-based communication is simpler to debug than message queues
 - Multi-tenant applications need careful data isolation
 - OAuth2 is more complex than it appears
 
 **2. Security-First Mindset**
+
 - SSL/TLS isn't optional in production
 - Authentication requires proper state management
 - Input validation and rate limiting are essential
 - Secrets management is crucial
 
 **3. Development Workflow**
+
 - Local development scripts save time
 - CI/CD pipelines automate repetitive tasks
 - Containerization ensures consistency
@@ -798,16 +905,19 @@ When we started this project, we thought cloud computing was about:
 #### **What We'd Do Differently**
 
 **1. Start with Security**
+
 - Implement OAuth2 from day one
 - Set up SSL/TLS early in development
 - Add input validation and rate limiting immediately
 
 **2. Better Testing Strategy**
+
 - Add automated tests for OAuth2 flows
 - Test database connections with SSL
 - Implement integration tests for microservices
 
 **3. Documentation**
+
 - Document debugging processes
 - Create troubleshooting guides
 - Share lessons learned earlier
@@ -815,41 +925,39 @@ When we started this project, we thought cloud computing was about:
 #### **Real-World Impact**
 
 This project taught us skills that are directly applicable to:
+
 - **Enterprise Applications**: Multi-tenant, secure, scalable
 - **Cloud-Native Development**: Containerized, distributed systems
 - **DevOps Practices**: CI/CD, infrastructure as code, GitOps
 - **Security Engineering**: Authentication, encryption, data protection
 
-> [!NOTE]
-> **Our Reflection**: Cloud computing is about building reliable, scalable, and maintainable systems. This project taught us the building blocks - now we're ready to create something amazing!
+> [!NOTE] > **Our Reflection**: Cloud computing is about building reliable, scalable, and maintainable systems. This project taught us the building blocks - now we're ready to create something amazing!
 
 **Happy Cloud Computing! ☁️**
 
-*— Harald, Patrick, and Susanne*
+_— Harald, Patrick, and Susanne_
 
 ## ✅ Professor Requirements: How We Met Each One
 
-> [!IMPORTANT]
-> **Complete Requirements Coverage**: Our application code satisfies the core requirements, while our other repositories handle deployment and infrastructure.
+> [!IMPORTANT] > **Complete Requirements Coverage**: Our application code satisfies the core requirements, while our other repositories handle deployment and infrastructure.
 
 ### 📋 Application Requirements Checklist
 
-| Requirement | Our Implementation | Status |
-|-------------|-------------------|---------|
-| **3+ Services** | Producer (Python), Consumer (Node.js), API (Node.js) | ✅ Met |
-| **Database Integration** | PostgreSQL with SSL/TLS and multi-tenant schemas | ✅ Met |
-| **OAuth2 Authentication** | GitHub OAuth with proper state management | ✅ Met |
-| **Security-First Design** | SSL/TLS, rate limiting, CORS, input validation | ✅ Met |
-| **Multi-Tenancy** | Isolated database schemas per tenant | ✅ Met |
+| Requirement               | Our Implementation                                   | Status |
+| ------------------------- | ---------------------------------------------------- | ------ |
+| **3+ Services**           | Producer (Python), Consumer (Node.js), API (Node.js) | ✅ Met |
+| **Database Integration**  | PostgreSQL with SSL/TLS and multi-tenant schemas     | ✅ Met |
+| **OAuth2 Authentication** | GitHub OAuth with proper state management            | ✅ Met |
+| **Security-First Design** | SSL/TLS, rate limiting, CORS, input validation       | ✅ Met |
+| **Multi-Tenancy**         | Isolated database schemas per tenant                 | ✅ Met |
 
 ### 🔗 Related Requirements in Other Repositories
 
-| Requirement | Repository | Link |
-|-------------|------------|------|
-| **Kubernetes Deployment** | INENPT-G1-K8s | [View Repository](https://github.com/MCCE2024/INENPT-G1-K8s) |
-| **GitOps Controller** | INENPT-G1-Argo | [View Repository](https://github.com/MCCE2024/INENPT-G1-Argo) |
-| **IaC Tool (Helm)** | INENPT-G1-Argo | [View Repository](https://github.com/MCCE2024/INENPT-G1-Argo) |
-| **No-Click Setup** | INENPT-G1-Argo | [View Repository](https://github.com/MCCE2024/INENPT-G1-Argo) |
+| Requirement               | Repository     | Link                                                          |
+| ------------------------- | -------------- | ------------------------------------------------------------- |
+| **Kubernetes Deployment** | INENPT-G1-K8s  | [View Repository](https://github.com/MCCE2024/INENPT-G1-K8s)  |
+| **GitOps Controller**     | INENPT-G1-Argo | [View Repository](https://github.com/MCCE2024/INENPT-G1-Argo) |
+| **IaC Tool (Helm)**       | INENPT-G1-Argo | [View Repository](https://github.com/MCCE2024/INENPT-G1-Argo) |
+| **No-Click Setup**        | INENPT-G1-Argo | [View Repository](https://github.com/MCCE2024/INENPT-G1-Argo) |
 
-> [!TIP]
-> **Complete System**: This repository contains the application code. For deployment and infrastructure, see our other repositories linked above.
+> [!TIP] > **Complete System**: This repository contains the application code. For deployment and infrastructure, see our other repositories linked above.
