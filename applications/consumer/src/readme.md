@@ -1,87 +1,90 @@
-# Consumer - Setup 
-Used libaries and coding language
-- [amqplib 0.10.3](https://www.npmjs.com/package/amqplib/v/0.10.3) 
-- [express 4.18.2](https://www.npmjs.com/package/express/v/4.18.2)
-- [nodemon 3.0.3](https://www.npmjs.com/package/nodemon/v/3.0.3)
+# Consumer Service (Node.js Web Dashboard)
 
-Used docker image from dockerhub
-- [node:16-alpine](https://hub.docker.com/_/node/)
+> ### 🔗 Part of the INENPT-G1 Multi-Repo Cloud-Native System
+> This repository is one of three that together form our complete cloud-native, GitOps-driven project:
+>
+> - **[INENPT-G1-Code](https://github.com/MCCE2024/INENPT-G1-Code)** – Application code & CI/CD pipelines
+> - **[INENPT-G1-K8s](https://github.com/MCCE2024/INENPT-G1-K8s)** – Kubernetes manifests & Helm charts
+> - **[INENPT-G1-Argo](https://github.com/MCCE2024/INENPT-G1-Argo)** – ArgoCD infrastructure & GitOps automation
+>
+> [Learn more about how these repositories work together in our main documentation.](https://github.com/MCCE2024/INENPT-G1-Argo#🏗️-our-3-repository-architecture-why-we-chose-this-path)
 
-## Function:
--  server.js establish a connection to the rabbitmq and the `async function connectQueue()` retries 10 times to establish a connection
--  Afterwards the recieved JSON will be parsed and pushed to a queue 
--  For the messages that are parsed to string a array is used
--  The javascript graphic userinterface offers to buttons `Refresh Messages` and `Delete All Messages`
--  `Delete All Messages uses the array` and this be cleared with `app.post('/clear-messages', (req, res) => {
-    messages.length = 0; // Clear the messages array
-    res.sendStatus(200);
-});`
-- Additionally the environment will be determined based on RabbitMQ port: `const environmentText = rabbitmq_port === '5672' ? 'Test Deployment' : 'Production Deployment';`
-### **Steps to Build and Run the Configuration**
+## Overview
+The Consumer service provides a web dashboard for users to view and manage datetime messages. It authenticates users via GitHub OAuth2 and fetches messages from the API service using HTTP requests.
 
-*Build and Push the Docker Image*:
-- navigate to the consumer directory
-- run the deployment script
+## Key Features
+- **OAuth2 Authentication**: Secure login with GitHub
+- **HTTP API Integration**: Fetches messages from the API service
+- **Multi-Tenant Support**: Each user sees only their own messages
+- **Interactive Dashboard**: View, refresh, and manage messages
+- **Security**: Session management, CORS, rate limiting
 
-   - Linux/MacOS:
-   ```
-   ./build.sh
-   ```
-   - Windows (PowerShell):
-   ```
-   ./build.ps1
-   ```
- 
-   - This script:
-     - uses the current timestamp as the image version
-     - builds and tags the Docker image
-     - pushes both the versioned and `latest` image tags to the registry (`ghcr.io/mcce2024`)
-     - Additionally checks for a correct GITHUB_TOKEN if not a push is prohibited
+## How It Works
+- Users log in via GitHub OAuth2
+- The dashboard fetches messages from the API using HTTP GET requests
+- All actions are performed via secure, authenticated HTTP calls
 
-*Run the Docker Container*:
-   - Start the service using Docker:
-     docker run -p 3000:3000 ghcr.io/mcce2024/akkt1-g1-consumer:latest
-  
-   - application will be accessible at `http://localhost:3000`
-> Action is no longer needed because there is a github action for this `build (consumer)`
+## Example Code Snippet
+```javascript
+// Fetch messages from the API
+fetch(`${API_BASE_URL}/api/messages?limit=50`, {
+  credentials: 'include',
+  headers: { 'Authorization': `Bearer ${userToken}` }
+})
+  .then(res => res.json())
+  .then(data => displayMessages(data));
+```
+
+## Setup & Development
+
+### Prerequisites
+- Node.js 18+
+- GitHub OAuth App credentials
+- API service running and accessible
+
+### Local Development
+```bash
+# Install dependencies
+npm install
+
+# Set environment variables
+export API_BASE_URL=http://localhost:3000
+export GITHUB_CLIENT_ID=your_client_id
+export GITHUB_CLIENT_SECRET=your_client_secret
+export SESSION_SECRET=your_session_secret
+
+# Start the development server
+npm run dev
+```
+
+### Build & Run with Docker
+```bash
+# Build the Docker image
+./build.sh
+
+# Run the container
+# (Set environment variables as needed)
+docker run -p 3001:3000 \
+  -e API_BASE_URL=http://host.docker.internal:3000 \
+  -e GITHUB_CLIENT_ID=your_client_id \
+  -e GITHUB_CLIENT_SECRET=your_client_secret \
+  -e SESSION_SECRET=your_session_secret \
+  ghcr.io/mcce2024/argo-g1-consumer:latest
+```
+
+## Debugging & Learning Journey
+> [!TIP]
+> **OAuth2 Debugging**: We learned that OAuth2 requires careful state management and error handling. Our first attempts failed until we handled the OAuth callback and session storage correctly.
+
+> [!CAUTION]
+> **API Integration**: Early versions tried to use message queues, but we switched to HTTP for simplicity and easier debugging. Fetching messages via HTTP made troubleshooting much easier.
+
+## How This Service Fits In
+- **Frontend**: Provides the user interface for the system
+- **Talks to**: API service (HTTP)
+- **Authentication**: GitHub OAuth2
+- **Part of**: [INENPT-G1-Code](../../../README.md) (see main README for full architecture)
+
 ---
-### **Service Communication Overview**
 
-- *RabbitMQ Integration*:
-  - RabbitMQ connection details are dynamically configured using environment variables:
-    ```
-    RABBITMQ_HOST
-    RABBITMQ_PORT
-    RABBITMQ_USER
-    RABBITMQ_PASS
-    ```
-  - The service consumes messages from a `datetime_queue` queue
-
-- *Web Dashboard*:
-  - Serves an interactive interface via `Express`:
-    - view and refresh messages
-    - clear messages stored in memory
-
-- *Key Scripts*:
-  - **`server.js`**:
-    - establishes a connection to RabbitMQ
-    - handles incoming messages and displays them on the web dashboard
-  - **`package.json`**:
-    - start the server:
-      ```
-      npm start
-      ```
-    - development mode with live reload:
-      ```
-      npm run dev
-      ```
----
-
-#### **Simplified Workflow**
-Run the `build.sh` or `build.ps1`script to build and push the Docker image
-Start the container using the `docker run` command
-Access the web dashboard to view and manage messages
-
-For more details, consult the source files:
-- **`server.js`**: RabbitMQ and Express configuration
-- **`package.json`**: Scripts and dependencies
+**For the complete system and learning journey, see the [main repo README](../../../README.md).**

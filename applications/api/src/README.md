@@ -1,75 +1,48 @@
-# MCCE API Service
+# API Service (Node.js)
 
-The API service is the core backend component of the MCCE multi-tenant application. It handles GitHub OAuth authentication, manages tenant data in PostgreSQL, and provides RESTful endpoints for the consumer (frontend) and producer services.
+> ### 🔗 Part of the INENPT-G1 Multi-Repo Cloud-Native System
+> This repository is one of three that together form our complete cloud-native, GitOps-driven project:
+>
+> - **[INENPT-G1-Code](https://github.com/MCCE2024/INENPT-G1-Code)** – Application code & CI/CD pipelines
+> - **[INENPT-G1-K8s](https://github.com/MCCE2024/INENPT-G1-K8s)** – Kubernetes manifests & Helm charts
+> - **[INENPT-G1-Argo](https://github.com/MCCE2024/INENPT-G1-Argo)** – ArgoCD infrastructure & GitOps automation
+>
+> [Learn more about how these repositories work together in our main documentation.](https://github.com/MCCE2024/INENPT-G1-Argo#🏗️-our-3-repository-architecture-why-we-chose-this-path)
 
-## Architecture
+## Overview
+The API service is the core backend of the system. It handles GitHub OAuth2 authentication, manages tenant data in PostgreSQL (with multi-tenancy), and provides RESTful endpoints for the Consumer and Producer services.
 
-This service implements the API layer as described in the concept diagram:
+## Key Features
+- **GitHub OAuth2 Authentication**: Secure user authentication
+- **Multi-Tenant Database**: Isolated schemas per tenant in PostgreSQL
+- **RESTful API**: Endpoints for storing and retrieving datetime messages
+- **Security**: Rate limiting, CORS, security headers, SSL/TLS for database
+- **Health Checks**: Kubernetes-ready endpoints
 
-- **GitHub OAuth Integration**: Validates GitHub tokens for tenant authentication
-- **Multi-tenant Database**: Creates isolated schemas per tenant in PostgreSQL
-- **RESTful API**: Provides endpoints for storing and retrieving datetime messages
-- **Security**: Implements rate limiting, CORS, and security headers
+## How It Works
+- Validates users via GitHub OAuth2
+- Each tenant gets a separate schema in PostgreSQL
+- Stores and retrieves messages via HTTP endpoints
+- Used by both the Producer (for storing) and Consumer (for fetching)
 
-## Features
-
-- 🔐 **GitHub OAuth Authentication**: Uses GitHub tokens for tenant identification
-- 🏢 **Multi-tenant Support**: Isolated database schemas per tenant
-- 📊 **Environment Support**: Separate data for prod/test environments
-- 🔒 **Security**: Rate limiting, CORS, and security headers
-- 📝 **Logging**: Structured logging with Winston
-- 🏥 **Health Checks**: Kubernetes-ready health endpoints
-
-## API Endpoints
-
-### Authentication
-
-All endpoints require a valid GitHub token in the Authorization header:
-
-```
-Authorization: Bearer <github_token>
-```
-
-### Health Check
-
-```
-GET /health
-```
-
-Returns service health status.
-
-### Store Message
-
-```
+## Example Endpoints
+```http
+# Store a message
 POST /api/messages
 Content-Type: application/json
-
 {
   "datetime": "2024-01-15T10:30:00Z",
   "environment": "prod"
 }
-```
 
-Stores a datetime message for the authenticated tenant.
-
-### Retrieve Messages
-
-```
+# Retrieve messages
 GET /api/messages?environment=prod&limit=100
-```
 
-Retrieves messages for the authenticated tenant.
-
-### Tenant Information
-
-```
+# Get tenant info
 GET /api/tenants
 ```
 
-Returns tenant statistics and GitHub user information.
-
 ## Environment Variables
-
 | Variable      | Description        | Default       |
 | ------------- | ------------------ | ------------- |
 | `PORT`        | Server port        | `3000`        |
@@ -81,30 +54,14 @@ Returns tenant statistics and GitHub user information.
 | `DB_PASSWORD` | Database password  | Required      |
 | `DB_SSL`      | Use SSL connection | `true`        |
 
-## Database Schema
-
-The service automatically creates tenant-specific schemas:
-
-```sql
--- Schema: tenant_<github_username>
-CREATE TABLE messages (
-  id SERIAL PRIMARY KEY,
-  datetime TIMESTAMP NOT NULL,
-  environment VARCHAR(10) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## Development
+## Setup & Development
 
 ### Prerequisites
-
 - Node.js 18+
 - PostgreSQL database
-- GitHub personal access token
+- GitHub OAuth App credentials
 
 ### Local Development
-
 ```bash
 # Install dependencies
 npm install
@@ -121,100 +78,37 @@ export DB_SSL=false
 npm run dev
 ```
 
-### Testing
-
+### Build & Run with Docker
 ```bash
-npm test
-```
+# Build the Docker image
+./build.sh
 
-## Docker
-
-### Build
-
-```bash
-docker build -t mcce-api-service .
-```
-
-### Run
-
-```bash
+# Run the container
 docker run -p 3000:3000 \
   -e DB_HOST=postgresql \
   -e DB_NAME=mcce_db \
   -e DB_USER=postgres \
   -e DB_PASSWORD=password \
-  mcce-api-service
+  ghcr.io/mcce2024/argo-g1-api:latest
 ```
 
-## Kubernetes Deployment
+## Debugging & Learning Journey
+> [!TIP]
+> **Multi-Tenancy**: We learned to create isolated schemas for each tenant, ensuring data separation and security.
 
-The service is deployed using the provided `deployment.yaml` which includes:
+> [!CAUTION]
+> **OAuth2 Debugging**: Implementing OAuth2 required careful state management and error handling. Our first attempts failed until we handled the callback and session storage correctly.
 
-- **Deployment**: 2 replicas with health checks
-- **Service**: ClusterIP service for internal communication
-- **ServiceAccount**: For RBAC
-- **NetworkPolicy**: Zero-trust network security
+> [!IMPORTANT]
+> **Database Security**: SSL/TLS for PostgreSQL was a challenge. We learned to use a CA certificate (`ca.pem`) for secure connections in production.
 
-### Secrets Required
+## How This Service Fits In
+- **Backend**: Core API for the system
+- **Talks to**: PostgreSQL (database)
+- **Used by**: Producer (HTTP POST), Consumer (HTTP GET)
+- **Authentication**: GitHub OAuth2
+- **Part of**: [INENPT-G1-Code](../../../README.md) (see main README for full architecture)
 
-Create a `postgresql-secret` with:
+---
 
-- `host`: PostgreSQL host
-- `port`: PostgreSQL port
-- `database`: Database name
-- `username`: Database user
-- `password`: Database password
-
-## Integration
-
-### With Consumer Service (Frontend)
-
-The consumer service calls the API to:
-
-- Retrieve messages for display
-- Get tenant information
-
-### With Producer Service
-
-The producer service calls the API to:
-
-- Store datetime messages from cron jobs
-
-### With GitHub OAuth
-
-- Validates GitHub tokens
-- Uses GitHub username as tenant ID
-- Supports GitHub App and Personal Access Tokens
-
-## Security
-
-- **Rate Limiting**: 100 requests per 15 minutes per IP
-- **CORS**: Configured for cross-origin requests
-- **Helmet**: Security headers
-- **Network Policies**: Kubernetes network isolation
-- **Non-root Container**: Runs as non-root user
-
-## Monitoring
-
-- **Health Checks**: `/health` endpoint for Kubernetes probes
-- **Logging**: Structured JSON logging with Winston
-- **Metrics**: Ready for Prometheus integration
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database Connection**: Check PostgreSQL credentials and network connectivity
-2. **GitHub Token**: Ensure valid GitHub personal access token
-3. **Network Policies**: Verify Kubernetes network policy allows required traffic
-4. **SSL**: Check PostgreSQL SSL configuration
-
-### Logs
-
-```bash
-# View application logs
-kubectl logs -f deployment/api-service
-
-# View health check logs
-kubectl describe pod -l app=api-service
-```
+**For the complete system and learning journey, see the [main repo README](../../../README.md).**
