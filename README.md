@@ -1,6 +1,9 @@
 # INENPT-G1-Code: Our Application Development Learning Journey
 
+03.07.2025
+
 > [!NOTE] > **Welcome to our learning journey!** This repository contains the **application code** for our cloud-native microservices. We're sharing our discoveries, challenges, and insights to help other students understand modern application development in the cloud.
+> We worked mostly via the Liveshare extension, so there can often be uneven pushes in the Git repository.
 
 ## 🧭 Repository Navigation Guide
 
@@ -47,14 +50,15 @@ INENPT-G1-Code/                           # This Repository: Application Code & 
 ├── applications/                          # Our 3 Microservices
 │   ├── api/                              # API Service (Node.js + PostgreSQL)
 │   │   ├── src/
-│   │   │   ├── server.js                 # Multi-tenant API with OAuth2
+│   │   │   ├── server.js                 # Multi-tenant API with schema isolation
 │   │   │   ├── Dockerfile                # Container definition
 │   │   │   ├── build.sh                  # Local build script
+│   │   │   ├── ca.pem                    # SSL certificate for database
 │   │   │   └── package.json              # Dependencies
 │   │   └── README.md                     # Service documentation
 │   ├── consumer/                         # Consumer Service (Node.js Web Dashboard)
 │   │   ├── src/
-│   │   │   ├── server.js                 # Web dashboard with OAuth2
+│   │   │   ├── server.js                 # Web dashboard with GitHub OAuth2
 │   │   │   ├── public/                   # Frontend files
 │   │   │   │   ├── dashboard.html        # Main dashboard
 │   │   │   │   └── login.html            # OAuth2 login page
@@ -88,7 +92,7 @@ As cloud computing students, we built a **complete microservices application** t
 - **Continuous Integration/Continuous Deployment (CI/CD)** with GitHub Actions - automating our development workflow
 - **HTTP-Based Service Communication** - handling synchronous communication between services
 - **Microservices Architecture** - breaking down applications into focused, independent services
-- **OAuth2 Authentication** - implementing secure user authentication
+- **OAuth2 Authentication** - implementing secure user authentication (Consumer Service)
 - **Database Security** with SSL/TLS - securing database connections
 - **Multi-tenant Applications** - isolating data between different users
 
@@ -97,18 +101,18 @@ As cloud computing students, we built a **complete microservices application** t
 We built a system that:
 
 - **Producer** (Python): Generates datetime messages and sends them via HTTP to the API
-- **API** (Node.js): Receives messages via HTTP and stores them in PostgreSQL
+- **API** (Node.js): Receives messages via HTTP and stores them in PostgreSQL with schema-based multi-tenancy
 - **Consumer** (Node.js): Fetches messages from the API via HTTP and displays them in a web dashboard
 - **PostgreSQL**: Stores all the datetime messages persistently
 
 ### Our Application Architecture
 
 ```
-┌─────────────┐    ┌─────────────┐     ┌─────────────┐
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Producer  │───▶│     API     │───▶│  Consumer   │
-│  (Python)   │    │  (Node.js)  │     │   (Node.js) │
-│             │    │             │     │             │
-└─────────────┘    └─────────────┘     └─────────────┘
+│  (Python)   │    │  (Node.js)  │    │   (Node.js) │
+│             │    │             │    │             │
+└─────────────┘    └─────────────┘    └─────────────┘
                            │
                            ▼
                    ┌─────────────┐
@@ -173,7 +177,7 @@ on:
 3. **Images are pushed** to GitHub Container Registry
 4. **ArgoCD automatically deploys** to our Kubernetes cluster
 
-> [!NOTE] > **Important Distinction**: Our CI/CD pipeline builds our three application containers (Producer, Consumer, API). RabbitMQ and PostgreSQL are external services that our applications connect to, but they're not built by our CI/CD pipeline.
+> [!NOTE] > **Important Distinction**: Our CI/CD pipeline builds our three application containers (Producer, Consumer, API). PostgreSQL is an external service that our applications connect to, but it's not built by our CI/CD pipeline.
 
 > [!WARNING] > **Security Lesson**: We learned to use GitHub secrets (`GHCR_USR`, `GHCR_PAT`) for authentication. Never hardcode credentials!
 
@@ -195,6 +199,22 @@ git push origin main
 - GitHub Actions automatically builds our containers
 - Images are pushed to GitHub Container Registry
 - Build status is reported back to us
+
+#### 3. **Deployment Configuration** (INENPT-G1-K8s)
+
+```bash
+# We update Kubernetes manifests with new image versions
+git clone https://github.com/MCCE2024/INENPT-G1-K8s.git
+# Update deployment.yaml with new image tags
+git commit -m "Update to v1.2.3"
+git push origin main
+```
+
+#### 4. **GitOps Deployment** (INENPT-G1-Argo)
+
+- ArgoCD monitors INENPT-G1-K8s for changes
+- Automatically deploys new versions to Kubernetes
+- Provides deployment status and rollback capabilities
 
 > [!TIP] > **Our Discovery**: This workflow ensures that every deployment is traceable, auditable, and can be rolled back if needed. We learned that GitOps is not just about automation, but about reliability and transparency.
 
@@ -281,9 +301,9 @@ Instead of one big application, we built **small, focused services**:
 
 ```
 Producer ──[HTTP POST]──▶ API ──[HTTP GET]──▶ Consumer
-                            │
-                            ▼
-                         PostgreSQL
+                │
+                ▼
+            PostgreSQL
 ```
 
 > [!NOTE] > **Our Design Choice**: We chose HTTP-based communication over message queues for simplicity. This makes our system easier to understand and debug, while still maintaining the benefits of microservices architecture.
@@ -446,7 +466,6 @@ app.get("/api/messages", async (req, res) => {
 // Read CA certificate for PostgreSQL SSL
 let caCert = null;
 try {
-  // Use the path from environment variable or default to mounted ConfigMap location
   const caCertPath = process.env.DB_CA_CERT_PATH || "/etc/ssl/certs/ca.pem";
   caCert = fs.readFileSync(caCertPath).toString();
   logger.info(`CA certificate loaded successfully from: ${caCertPath}`);
@@ -454,10 +473,6 @@ try {
   logger.warn("Could not load CA certificate:", error.message);
   logger.warn("SSL connection will use system CA certificates");
 }
-
-// Debug: print DB user and password
-logger.info(`DB_USER: ${process.env.DB_USER}`);
-// logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`); // Commented out for security
 
 // PostgreSQL connection with SSL
 const pool = new Pool({
@@ -475,15 +490,23 @@ const pool = new Pool({
       : false,
 });
 
-// POST /api/messages - Store datetime message
+// Tenant middleware - gets tenant from environment variable
+function tenantMiddleware(req, res, next) {
+  const tenantId = process.env.TENANT_ID || "default";
+  req.tenantId = tenantId;
+  req.githubUser = {
+    login: tenantId,
+    id: Date.now(),
+    name: `User from ${tenantId}`,
+  };
+  next();
+}
+
+// Multi-tenant message storage
 app.post("/api/messages", tenantMiddleware, async (req, res) => {
   try {
     const { datetime, environment = "prod" } = req.body;
     const tenantId = req.tenantId;
-
-    if (!datetime) {
-      return res.status(400).json({ error: "datetime is required" });
-    }
 
     // Create tenant schema if it doesn't exist
     await pool.query(`
@@ -493,37 +516,12 @@ app.post("/api/messages", tenantMiddleware, async (req, res) => {
       )}
     `);
 
-    // Create messages table if it doesn't exist
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS tenant_${tenantId.replace(
-        /[^a-zA-Z0-9]/g,
-        "_"
-      )}.messages (
-        id SERIAL PRIMARY KEY,
-        datetime TIMESTAMP NOT NULL,
-        environment VARCHAR(10) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
     // Insert the message
     const result = await pool.query(
-      `
-      INSERT INTO tenant_${tenantId.replace(
-        /[^a-zA-Z0-9]/g,
-        "_"
-      )}.messages (datetime, environment)
-      VALUES ($1, $2)
-      RETURNING id, datetime, environment, created_at
-    `,
+      `INSERT INTO tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}.messages 
+       (datetime, environment) VALUES ($1, $2) RETURNING *`,
       [datetime, environment]
     );
-
-    logger.info(`Message stored for tenant ${tenantId}`, {
-      tenantId,
-      environment,
-      messageId: result.rows[0].id,
-    });
 
     res.status(201).json({
       message: "Message stored successfully",
@@ -536,15 +534,15 @@ app.post("/api/messages", tenantMiddleware, async (req, res) => {
 });
 ```
 
-> [!IMPORTANT] > **Multi-tenancy & Security**: We learned that each tenant gets their own database schema, and we secure all database connections with SSL/TLS encryption for production environments.
+> [!IMPORTANT] > **Multi-tenancy & Security**: We learned that each tenant gets their own database schema based on the TENANT_ID environment variable, and we secure all database connections with SSL/TLS encryption for production environments.
 
 ## 🎓 Key Application Concepts
 
-### 1. **OAuth2 Authentication**
+### 1. **OAuth2 Authentication (Consumer Service)**
 
 > [!WARNING] > **OAuth2 Authentication - Our Biggest Challenge**
 >
-> We thought OAuth2 would be simple - just add a few endpoints. Reality was much harder:
+> We implemented OAuth2 in the Consumer Service for user authentication. We thought OAuth2 would be simple - just add a few endpoints. Reality was much harder:
 >
 > ```javascript
 > // What we thought would work:
@@ -553,68 +551,13 @@ app.post("/api/messages", tenantMiddleware, async (req, res) => {
 > });
 >
 > // What actually worked after days of debugging:
-> app.get("/auth/github/callback", async (req, res) => {
->   const { code, error } = req.query;
->
->   if (error) {
->     console.error("GitHub OAuth error:", error);
->     return res.redirect("/?error=oauth_failed");
+> app.get("/auth/github", (req, res) => {
+>   if (!GITHUB_CLIENT_ID) {
+>     return res.redirect("/?error=oauth_not_configured");
 >   }
->
->   if (!code) {
->     return res.redirect("/?error=oauth_no_code");
->   }
->
->   try {
->     // Exchange code for access token
->     const tokenResponse = await fetch(
->       "https://github.com/login/oauth/access_token",
->       {
->         method: "POST",
->         headers: {
->           Accept: "application/json",
->           "Content-Type": "application/json",
->         },
->         body: JSON.stringify({
->           client_id: GITHUB_CLIENT_ID,
->           client_secret: GITHUB_CLIENT_SECRET,
->           code: code,
->         }),
->       }
->     );
->
->     const tokenData = await tokenResponse.json();
->
->     if (tokenData.error) {
->       console.error("GitHub token error:", tokenData.error);
->       return res.redirect("/?error=oauth_token_failed");
->     }
->
->     // Get user information
->     const userResponse = await fetch("https://api.github.com/user", {
->       headers: {
->         Authorization: `Bearer ${tokenData.access_token}`,
->         Accept: "application/vnd.github.v3+json",
->       },
->     });
->
->     const userData = await userResponse.json();
->
->     // Store user in session
->     req.session.githubUser = {
->       id: userData.id,
->       login: userData.login,
->       name: userData.name,
->       email: userData.email,
->       avatar_url: userData.avatar_url,
->     };
->
->     console.log(`User authenticated: ${userData.login} (${userData.name})`);
->     res.redirect("/dashboard");
->   } catch (error) {
->     console.error("OAuth callback error:", error);
->     res.redirect("/?error=oauth_callback_failed");
->   }
+>   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=user:email`;
+>   res.redirect(githubAuthUrl);
+> });
 > ```
 >
 > **Our Learning**: OAuth2 requires proper state management, session handling, and error handling. We learned that security is never as simple as it looks.
@@ -635,31 +578,19 @@ app.post("/api/messages", tenantMiddleware, async (req, res) => {
 > // What actually worked:
 > let caCert = null;
 > try {
->   // Use the path from environment variable or default to mounted ConfigMap location
->   const caCertPath = process.env.DB_CA_CERT_PATH || "/etc/ssl/certs/ca.pem";
->   caCert = fs.readFileSync(caCertPath).toString();
->   logger.info(`CA certificate loaded successfully from: ${caCertPath}`);
+>   caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
+>   logger.info("CA certificate loaded successfully");
 > } catch (error) {
 >   logger.warn("Could not load CA certificate:", error.message);
->   logger.warn("SSL connection will use system CA certificates");
 > }
 >
-> // Debug: print DB user and password
-> logger.info(`DB_USER: ${process.env.DB_USER}`);
-> // logger.info(`DB_PASSWORD: ${process.env.DB_PASSWORD}`); // Commented out for security
->
-> // PostgreSQL connection pool
 > const pool = new Pool({
 >   host: process.env.DB_HOST,
->   port: process.env.DB_PORT || 5432,
->   database: process.env.DB_NAME,
->   user: process.env.DB_USER,
->   password: process.env.DB_PASSWORD,
 >   ssl:
 >     process.env.DB_SSL === "require"
 >       ? {
 >           rejectUnauthorized: false,
->           ca: caCert,
+>           ca: caCert, // This was the missing piece!
 >         }
 >       : false,
 > });
@@ -667,35 +598,35 @@ app.post("/api/messages", tenantMiddleware, async (req, res) => {
 >
 > **Our Learning**: SSL certificates aren't optional in production. We spent hours debugging connection issues before realizing we needed proper certificate handling.
 
-### 3. **Multi-Tenant Applications**
+### 3. **Multi-Tenant Applications (API Service)**
 
 > [!TIP] > **Multi-Tenancy - Data Isolation**
 >
-> We learned to create isolated database schemas for each tenant:
+> We implemented schema-based multi-tenancy in the API Service, where each tenant is identified by the TENANT_ID environment variable:
 >
 > ```javascript
-> // Get tenant ID from environment variable
-> const tenantId = process.env.TENANT_ID || "default";
+> // Tenant middleware - gets tenant from environment variable
+> function tenantMiddleware(req, res, next) {
+>   const tenantId = process.env.TENANT_ID || "default";
+>   req.tenantId = tenantId;
+>   next();
+> }
+>
+> // Create tenant-specific schema
 > const schemaName = `tenant_${tenantId.replace(/[^a-zA-Z0-9]/g, "_")}`;
->
-> logger.info(`Initializing database for tenant: ${tenantId}`);
->
-> // Create tenant schema if it doesn't exist
 > await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`);
-> logger.info(`Schema ${schemaName} created/verified`);
 >
-> // Create messages table if it doesn't exist
-> await pool.query(`
->       CREATE TABLE IF NOT EXISTS ${schemaName}.messages (
->         id SERIAL PRIMARY KEY,
->         datetime TIMESTAMP NOT NULL,
->         environment VARCHAR(10) NOT NULL,
->         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
->       )
->     `);
+> // Store data in tenant's schema
+> await pool.query(
+>   `
+>   INSERT INTO ${schemaName}.messages (datetime, environment)
+>   VALUES ($1, $2)
+> `,
+>   [datetime, environment]
+> );
 > ```
 >
-> **Our Learning**: Multi-tenancy requires careful data isolation. Each tenant > gets their own database schema to ensure complete data separation.
+> **Our Learning**: Multi-tenancy requires careful data isolation. Each tenant gets their own database schema to ensure complete data separation.
 
 ### 4. **HTTP-Based Service Communication**
 
@@ -854,6 +785,7 @@ app.post("/api/messages", tenantMiddleware, async (req, res) => {
 - [Docker Documentation](https://docs.docker.com/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [GitHub OAuth Documentation](https://docs.github.com/en/apps/oauth-apps)
 - [Microservices Patterns](https://microservices.io/patterns/)
 
 ---
@@ -877,7 +809,7 @@ When we started this project, we thought cloud computing was about:
 - **Debugging is 80% of the work**: OAuth2, SSL/TLS, and distributed systems debugging
 - **Security is never optional**: Every component needs proper authentication and encryption
 - **Infrastructure matters**: How you deploy affects how you develop
-- **Multi-tenancy is complex**: Data isolation requires careful design
+- **Multi-tenancy is complex**: Data isolation requires careful design and environment-based tenant identification
 
 #### **Key Insights**
 
@@ -885,8 +817,8 @@ When we started this project, we thought cloud computing was about:
 
 - Microservices require different thinking than monolithic applications
 - HTTP-based communication is simpler to debug than message queues
-- Multi-tenant applications need careful data isolation
-- OAuth2 is more complex than it appears
+- Multi-tenant applications need careful data isolation and environment-based tenant identification
+- OAuth2 is more complex than it appears and requires proper session management
 
 **2. Security-First Mindset**
 
