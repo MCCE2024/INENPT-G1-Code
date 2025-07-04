@@ -1,6 +1,9 @@
 # Producer Service (Python)
 
+03.07.2025
+
 > ### 🔗 Part of the INENPT-G1 Multi-Repo Cloud-Native System
+>
 > This repository is one of three that together form our complete cloud-native, GitOps-driven project:
 >
 > - **[INENPT-G1-Code](https://github.com/MCCE2024/INENPT-G1-Code)** – Application code & CI/CD pipelines
@@ -10,45 +13,93 @@
 > [Learn more about how these repositories work together in our main documentation.](https://github.com/MCCE2024/INENPT-G1-Argo#🏗️-our-3-repository-architecture-why-we-chose-this-path)
 
 ## Overview
-The Producer service generates datetime messages and sends them to the API service via HTTP POST requests. It is designed to run as a scheduled job (e.g., Kubernetes CronJob) and supports retry logic for robust delivery.
+
+The Producer service generates datetime messages and sends them to the API service via HTTP POST requests. It is designed to run as a scheduled job (e.g., Kubernetes CronJob) and supports robust retry logic with detailed logging for reliable delivery.
 
 ## Key Features
+
 - **HTTP API Integration**: Sends messages to the API service
-- **Retry Logic**: Retries failed HTTP requests
-- **Environment Awareness**: Can be configured for different environments (prod/test)
+- **Retry Logic**: 3 attempts with 30-second delays between retries
+- **Environment Awareness**: Configurable for different environments (prod/test)
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
+- **Graceful Error Handling**: Continues execution even if API is unreachable
 - **Security**: Uses environment variables for configuration
 
 ## How It Works
-- Generates a datetime message (with timezone)
-- Sends the message to the API using HTTP POST
-- Retries if the API is temporarily unavailable
+
+- Generates a datetime message in UTC timezone
+- Sends the message to the API using HTTP POST with retry logic
+- Logs all attempts and responses for debugging
+- Continues execution gracefully even if API is unavailable
+
+## Message Format
+
+The service sends messages in the following format:
+
+```json
+{
+  "datetime": "2024-01-15 10:30:00",
+  "environment": "prod"
+}
+```
 
 ## Example Code Snippet
+
 ```python
-# Send message to API with retry logic
-for attempt in range(max_retries):
-    try:
-        response = requests.post(
-            f"{api_url}/api/messages",
-            headers={"Content-Type": "application/json"},
-            json=message,
-            timeout=30
-        )
-        if response.status_code == 201:
-            print("Message sent!")
-            break
-    except Exception as e:
-        print(f"Attempt {attempt+1} failed: {e}")
-        time.sleep(retry_delay)
+def send_to_api(message, max_retries=3, retry_delay=30):
+    """Send message to API with retry logic"""
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'MCCE-Producer-Service'
+    }
+
+    endpoint = f"{api_url}/api/messages"
+
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Sending message to API (attempt {attempt + 1}/{max_retries})")
+
+            response = requests.post(
+                endpoint,
+                headers=headers,
+                json=message,
+                timeout=30
+            )
+
+            if response.status_code == 201:
+                logger.info(f"Successfully sent message to API: {response.json()}")
+                return True
+            else:
+                logger.error(f"API returned error {response.status_code}: {response.text}")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+
+        if attempt < max_retries - 1:
+            logger.info(f"Waiting {retry_delay} seconds before retry...")
+            time.sleep(retry_delay)
+
+    logger.error(f"Failed to send message to API after {max_retries} attempts")
+    return False
 ```
+
+## Environment Variables
+
+| Variable       | Description                   | Default                   |
+| -------------- | ----------------------------- | ------------------------- |
+| `API_URL`      | API service URL               | `http://api-service:3000` |
+| `GITHUB_TOKEN` | GitHub token (for future use) | Optional                  |
+| `ENVIRONMENT`  | Environment (prod/test)       | `prod`                    |
 
 ## Setup & Development
 
 ### Prerequisites
+
 - Python 3.9+
 - API service running and accessible
 
 ### Local Development
+
 ```bash
 # Install dependencies
 pip install -r requirements.txt
@@ -56,35 +107,67 @@ pip install -r requirements.txt
 # Set environment variables
 export API_URL=http://localhost:3000
 export ENVIRONMENT=prod
+export GITHUB_TOKEN=your_github_token  # Optional
 
 # Run the producer
 python producer.py
 ```
 
 ### Build & Run with Docker
+
 ```bash
 # Build the Docker image
 ./build.sh
 
 # Run the container
-# (Set environment variables as needed)
 docker run --rm \
   -e API_URL=http://host.docker.internal:3000 \
   -e ENVIRONMENT=prod \
+  -e GITHUB_TOKEN=your_github_token \
   ghcr.io/mcce2024/argo-g1-producer:latest
 ```
 
-## Debugging & Learning Journey
-> [!TIP]
-> **HTTP Retry Logic**: We learned that cloud environments are unpredictable. Adding retry logic made our producer robust against temporary API outages.
+## Retry Logic Details
 
-> [!CAUTION]
-> **Architecture Change**: We originally used RabbitMQ, but switched to HTTP POST for simplicity and easier debugging. This made the system more transparent and maintainable.
+The service implements robust retry logic:
+
+- **Max Attempts**: 3 attempts per message
+- **Retry Delay**: 30 seconds between attempts
+- **Timeout**: 30 seconds per HTTP request
+- **Success Criteria**: HTTP 201 status code
+- **Error Handling**: Logs all failures but continues execution
+
+## Logging
+
+The service provides comprehensive logging:
+
+- **Info Level**: Configuration, message creation, successful sends
+- **Error Level**: API errors, network failures, retry attempts
+- **Format**: Timestamp, log level, and detailed message
+- **Output**: Console logging (configurable for file output)
+
+## Error Handling Strategy
+
+- **API Unavailable**: Retries 3 times with delays
+- **Network Errors**: Handles timeouts and connection failures
+- **API Errors**: Logs HTTP error responses
+- **Graceful Degradation**: Continues execution even if API is unreachable
+- **No Exit Codes**: Service doesn't fail if API is unavailable
+
+## Debugging & Learning Journey
+
+> [!TIP] > **HTTP Retry Logic**: We implemented robust retry logic with detailed logging. This makes the producer resilient against temporary API outages and provides excellent debugging capabilities.
+
+> [!CAUTION] > **Architecture Change**: We originally used RabbitMQ, but switched to HTTP POST for simplicity and easier debugging. This made the system more transparent and maintainable.
+
+> [!IMPORTANT] > **Graceful Error Handling**: We learned that scheduled jobs should not fail completely if external services are unavailable. The producer continues execution and logs warnings instead of exiting with error codes.
 
 ## How This Service Fits In
+
 - **Backend**: Generates and sends datetime messages
-- **Talks to**: API service (HTTP)
+- **Talks to**: API service (HTTP POST)
 - **Runs as**: CronJob or scheduled task
+- **Reliability**: Retry logic and graceful error handling
 - **Part of**: [INENPT-G1-Code](../../../README.md) (see main README for full architecture)
 
 ---

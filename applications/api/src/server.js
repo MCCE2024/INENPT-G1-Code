@@ -37,13 +37,16 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Read CA certificate
+// Read CA certificate from mounted ConfigMap
 let caCert = null;
 try {
-  caCert = fs.readFileSync(path.join(__dirname, "ca.pem")).toString();
-  logger.info("CA certificate loaded successfully");
+  // Use the path from environment variable or default to mounted ConfigMap location
+  const caCertPath = process.env.DB_CA_CERT_PATH || "/etc/ssl/certs/ca.pem";
+  caCert = fs.readFileSync(caCertPath).toString();
+  logger.info(`CA certificate loaded successfully from: ${caCertPath}`);
 } catch (error) {
   logger.warn("Could not load CA certificate:", error.message);
+  logger.warn("SSL connection will use system CA certificates");
 }
 
 // Debug: print DB user and password
