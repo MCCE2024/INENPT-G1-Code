@@ -37,6 +37,7 @@
 - [🤝 Our Learning Journey](#-our-learning-journey)
 - [📚 Resources That Helped Us](#-resources-that-helped-us)
 - [🤔 Our Reflection](#-our-reflection)
+- [🚀 Possible Improvements](#-possible-improvements)
 
 ## 📁 Project Structure
 
@@ -853,3 +854,38 @@ This project taught us skills that are directly applicable to:
 
 > [!TIP]
 > **Complete System**: This repository contains the application code. For deployment and infrastructure, see our other repositories linked above.
+
+## 🔗 How This Repository Integrates with the Others
+
+- **INENPT-G1-K8s**:  
+  - Provisions the Kubernetes cluster and managed PostgreSQL database using OpenTofu (or Terraform).
+  - Outputs cluster and database connection information for use by the applications built in this repository.
+
+- **INENPT-G1-Argo**:  
+  - Contains the GitOps deployment configuration (Helm charts, ArgoCD ApplicationSets, Sealed Secrets).
+  - References the Docker images built and pushed by this repository in its deployment manifests.
+  - (Recommended) After a successful build, a workflow or manual process should update the image tag in the Helm values files in INENPT-G1-Argo, ensuring ArgoCD deploys the latest version.
+
+- **INENPT-G1-Code (this repo)**:  
+  - Contains the application source code and CI/CD workflows for building and pushing Docker images to the GitHub Container Registry (GHCR).
+  - Triggers builds and deployments that are then managed by the other two repositories.
+
+## 🚀 Possible Improvements
+
+- **ArgoCD GitHub Action for ApplicationSet Templates** (INENPT-G1-Argo):
+  - Automate the generation and update of ApplicationSet YAMLs using a GitHub Action, reducing manual errors and improving scalability for new tenants/services.
+
+- **GitHub Action for Tag Update** (INENPT-G1-Code & INENPT-G1-Argo):
+  - After a successful image build, automatically create a PR in INENPT-G1-Argo to update the image tag in Helm values, ensuring seamless GitOps deployment.
+
+- **Secure Database IP Filtering** (INENPT-G1-K8s):
+  - Restrict PostgreSQL access to only the Kubernetes cluster or specific CIDRs, rather than 0.0.0.0/0, to enhance security.
+
+- **Proxy for Request Forwarding & JWT Generation** (INENPT-G1-Code):
+  - Implement a proxy service to route requests to the correct tenant namespace based on URL, and optionally generate JWT tokens for secure, multi-tenant authentication.
+
+### Additional Considerations
+- All improvements are viable and align with best practices for automation, security, and scalability.
+- Ensure proper testing and review for automation (GitHub Actions) to avoid accidental disruptions.
+- For security enhancements, validate network policies and access controls after changes.
+- Proxy and JWT logic should be thoroughly tested for security vulnerabilities and correct multi-tenancy behavior.
