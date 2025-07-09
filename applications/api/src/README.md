@@ -18,7 +18,7 @@ The API service is the core backend of the system. It manages tenant data in Pos
 
 ## Key Features
 
-- **Schema-Based Multi-Tenancy**: Isolated schemas per teanant in PostgreSQL
+- **Schema-Based Multi-Tenancy**: Isolated schemas per tenant in PostgreSQL
 - **RESTful API**: Endpoints for storing and retrieving datetime messages
 - **Security**: Rate limiting, CORS, security headers, SSL/TLS for database
 - **Health Checks**: Kubernetes-ready endpoints
@@ -31,25 +31,107 @@ The API service is the core backend of the system. It manages tenant data in Pos
 - Stores and retrieves messages via HTTP endpoints
 - Used by both the Producer (for storing) and Consumer (for fetching)
 
-## Example Endpoints
+## API Reference
+
+### Authentication
+
+All API endpoints use tenant-based authentication via the `TENANT_ID` environment variable. No additional authentication headers are required.
+
+### Endpoints
+
+#### POST /api/messages
+
+Store a new datetime message for the current tenant.
+
+**Request:**
 
 ```http
-# Store a message
 POST /api/messages
 Content-Type: application/json
+
 {
   "datetime": "2024-01-15T10:30:00Z",
   "environment": "prod"
 }
+```
 
-# Retrieve messages
+**Response (201 Created):**
+
+```json
+{
+  "message": "Message stored successfully",
+  "data": {
+    "id": 1,
+    "datetime": "2024-01-15T10:30:00.000Z",
+    "environment": "prod",
+    "created_at": "2024-01-15T10:30:05.123Z"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Missing required fields
+- `500 Internal Server Error`: Database connection issues
+
+#### GET /api/messages
+
+Retrieve datetime messages for the current tenant.
+
+**Request:**
+
+```http
 GET /api/messages?environment=prod&limit=100
+```
 
-# Get tenant info
-GET /api/tenants
+**Query Parameters:**
 
-# Health check
-GET /health
+- `environment` (optional): Filter by environment (`prod`, `test`, etc.)
+- `limit` (optional): Maximum number of messages to return (default: 100)
+
+**Response (200 OK):**
+
+```json
+{
+  "messages": [
+    {
+      "id": 1,
+      "datetime": "2024-01-15T10:30:00.000Z",
+      "environment": "prod",
+      "created_at": "2024-01-15T10:30:05.123Z"
+    }
+  ],
+  "count": 1,
+  "tenant": "default"
+}
+```
+
+#### GET /api/tenants
+
+Get tenant information and statistics.
+
+**Response (200 OK):**
+
+```json
+{
+  "tenant": "default",
+  "message_count": 42,
+  "environments": ["prod", "test"],
+  "last_message": "2024-01-15T10:30:00.000Z"
+}
+```
+
+#### GET /health
+
+Health check endpoint for monitoring.
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
 ```
 
 ## Environment Variables
