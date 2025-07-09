@@ -27,6 +27,7 @@
 
 ## 📋 Table of Contents
 
+- [🚀 Quick Start Guide](#-quick-start-guide)
 - [🎯 What We Learned](#-what-we-learned)
 - [🏗️ Our Project: A Message Processing System](#️-our-project-a-message-processing-system)
 - [📁 Project Structure](#-project-structure)
@@ -36,6 +37,7 @@
 - [🚀 How to Run Our Project](#-how-to-run-our-project)
 - [🔧 Code Insights: What We Learned](#-code-insights-what-we-learned)
 - [🎓 Key Application Concepts](#-key-application-concepts)
+- [🚨 Troubleshooting Guide](#-troubleshooting-guide)
 - [✅ Professor Requirements: How We Met Each One](#-professor-requirements-how-we-met-each-one)
 - [🌍 Real-World Applications](#-real-world-applications)
 - [🚀 What We Want to Learn Next](#-what-we-want-to-learn-next)
